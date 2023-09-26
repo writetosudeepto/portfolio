@@ -7,6 +7,12 @@ import { AppWrap, MotionWrap } from "../../wrapper";
 import { urlFor, client } from "../../client";
 import "./Skills.scss";
 
+const WithUniqueKey = (Component) => (props) => {
+  const { name } = props;
+  const uniqueKey = name; // You can customize this logic if needed
+  return <Component {...props} key={uniqueKey} />;
+};
+
 const Skills = () => {
   const [experiences, setExperiences] = useState([]);
   const [skills, setSkills] = useState([]);
@@ -55,7 +61,7 @@ const Skills = () => {
               </div>
               <motion.div className="app__skills-exp-works">
                 {experience.works.map((work) => (
-                  <>
+                  <motion.div key={work.name}>
                     <motion.div
                       whileInView={{ opacity: [0, 1] }}
                       transition={{ duration: 0.5 }}
@@ -76,7 +82,7 @@ const Skills = () => {
                     >
                       {work.desc}
                     </ReactTooltip>
-                  </>
+                  </motion.div>
                 ))}
               </motion.div>
             </motion.div>
