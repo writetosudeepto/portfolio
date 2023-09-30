@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/portfolio/static/css/main.b9b2818a.css",
-    "main.js": "/portfolio/static/js/main.d8b8172d.js",
+    "main.js": "/portfolio/static/js/main.a4db5f1f.js",
     "static/media/about04.png": "/portfolio/static/media/about04.fa7b3a72ed32b0e25bfb.png",
     "static/media/about02.png": "/portfolio/static/media/about02.7a3df03410ee756268ec.png",
     "static/media/about01.png": "/portfolio/static/media/about01.080509de05322b7aafda.png",
@@ -10,20 +10,30 @@
     "static/media/profile.png": "/portfolio/static/media/profile.9d2b98848a3bc9a63fdd.png",
     "static/media/about03.png": "/portfolio/static/media/about03.c26c2547bb1a423cf283.png",
     "static/media/spotify.png": "/portfolio/static/media/spotify.2b5e9be1eb1ab501e7cd.png",
+    "static/media/python.png": "/portfolio/static/media/python.d8b377f05522bf35de36.png",
     "static/media/nb.png": "/portfolio/static/media/nb.98f3253e32cc67a4cb5e.png",
     "static/media/sd-logo-copyright.png": "/portfolio/static/media/sd-logo-copyright.d0b05d3e566bd216bbb0.png",
+    "static/media/jupyter.png": "/portfolio/static/media/jupyter.e62eb6a74a266ae31a7a.png",
+    "static/media/gcp.png": "/portfolio/static/media/gcp.e3c95f14d9c11b3802e9.png",
     "static/media/asus.png": "/portfolio/static/media/asus.514bc34955008a92e09f.png",
+    "static/media/tableau.png": "/portfolio/static/media/tableau.1ecae6b3c4d8cea8818f.png",
     "static/media/adidas.png": "/portfolio/static/media/adidas.83df8153294f9137d308.png",
+    "static/media/sql.png": "/portfolio/static/media/sql.2c0731d77845860455d4.png",
     "static/media/bolt.png": "/portfolio/static/media/bolt.64e7d9d30ece478ef3a0.png",
+    "static/media/react.png": "/portfolio/static/media/react.20adfb35ae6a6e5817bf.png",
+    "static/media/javascript.png": "/portfolio/static/media/javascript.905854aea27649855dd5.png",
+    "static/media/pandas.png": "/portfolio/static/media/pandas.d4fdad2dc0d596a076ce.png",
     "static/media/redux.png": "/portfolio/static/media/redux.c9be37e0fece29c624b0.png",
     "static/media/sass.png": "/portfolio/static/media/sass.36e863bfbcb25c109d00.png",
     "static/media/node.png": "/portfolio/static/media/node.8683d89cf78ffae3d1f7.png",
     "static/media/cpp.png": "/portfolio/static/media/cpp.9002a804bbfa0354d0b8.png",
+    "static/media/big-query.png": "/portfolio/static/media/big-query.41b67157ac623cb6362f.png",
     "static/media/graphql.png": "/portfolio/static/media/graphql.0372057049181c5de51a.png",
     "static/media/logo.png": "/portfolio/static/media/logo.eb13344a3aaa5f923aad.png",
     "static/media/amazon.png": "/portfolio/static/media/amazon.0a8be1f53138b5c52456.png",
     "static/media/mobile.png": "/portfolio/static/media/mobile.145d9ce0157a56f8fcd8.png",
     "static/media/email.png": "/portfolio/static/media/email.37b9e890eea501421fbf.png",
+    "static/media/numpy.png": "/portfolio/static/media/numpy.3681202b2a485a4dee23.png",
     "static/media/figma.png": "/portfolio/static/media/figma.152e55329b6f1915967e.png",
     "static/media/css.png": "/portfolio/static/media/css.5721a3928fe43de6baf8.png",
     "static/media/git.png": "/portfolio/static/media/git.a54d3fa44e02f2f61e69.png",
@@ -31,10 +41,10 @@
     "index.html": "/portfolio/index.html",
     "static/media/circle.svg": "/portfolio/static/media/circle.134eeeb1e58895b892195fe8ed63bc9f.svg",
     "main.b9b2818a.css.map": "/portfolio/static/css/main.b9b2818a.css.map",
-    "main.d8b8172d.js.map": "/portfolio/static/js/main.d8b8172d.js.map"
+    "main.a4db5f1f.js.map": "/portfolio/static/js/main.a4db5f1f.js.map"
   },
   "entrypoints": [
     "static/css/main.b9b2818a.css",
-    "static/js/main.d8b8172d.js"
+    "static/js/main.a4db5f1f.js"
   ]
 }
