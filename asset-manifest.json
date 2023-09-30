@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/portfolio/static/css/main.26c1b225.css",
-    "main.js": "/portfolio/static/js/main.d76c920d.js",
+    "main.css": "/portfolio/static/css/main.b9b2818a.css",
+    "main.js": "/portfolio/static/js/main.d8b8172d.js",
     "static/media/about04.png": "/portfolio/static/media/about04.fa7b3a72ed32b0e25bfb.png",
     "static/media/about02.png": "/portfolio/static/media/about02.7a3df03410ee756268ec.png",
     "static/media/about01.png": "/portfolio/static/media/about01.080509de05322b7aafda.png",
@@ -11,6 +11,7 @@
     "static/media/about03.png": "/portfolio/static/media/about03.c26c2547bb1a423cf283.png",
     "static/media/spotify.png": "/portfolio/static/media/spotify.2b5e9be1eb1ab501e7cd.png",
     "static/media/nb.png": "/portfolio/static/media/nb.98f3253e32cc67a4cb5e.png",
+    "static/media/sd-logo-copyright.png": "/portfolio/static/media/sd-logo-copyright.d0b05d3e566bd216bbb0.png",
     "static/media/asus.png": "/portfolio/static/media/asus.514bc34955008a92e09f.png",
     "static/media/adidas.png": "/portfolio/static/media/adidas.83df8153294f9137d308.png",
     "static/media/bolt.png": "/portfolio/static/media/bolt.64e7d9d30ece478ef3a0.png",
@@ -29,11 +30,11 @@
     "static/media/skype.png": "/portfolio/static/media/skype.c8d7ee175da5b4c8a8ab.png",
     "index.html": "/portfolio/index.html",
     "static/media/circle.svg": "/portfolio/static/media/circle.134eeeb1e58895b892195fe8ed63bc9f.svg",
-    "main.26c1b225.css.map": "/portfolio/static/css/main.26c1b225.css.map",
-    "main.d76c920d.js.map": "/portfolio/static/js/main.d76c920d.js.map"
+    "main.b9b2818a.css.map": "/portfolio/static/css/main.b9b2818a.css.map",
+    "main.d8b8172d.js.map": "/portfolio/static/js/main.d8b8172d.js.map"
   },
   "entrypoints": [
-    "static/css/main.26c1b225.css",
-    "static/js/main.d76c920d.js"
+    "static/css/main.b9b2818a.css",
+    "static/js/main.d8b8172d.js"
   ]
 }
