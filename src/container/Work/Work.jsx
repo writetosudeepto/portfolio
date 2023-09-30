@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AiFillEye, AiFillGithub } from "react-icons/ai";
+import { SiGooglecolab } from "react-icons/si";
 import { motion } from "framer-motion";
 import { AppWrap, MotionWrap } from "../../wrapper";
 import { urlFor, client } from "../../client";
@@ -35,6 +36,17 @@ const Work = () => {
     }, 500);
   };
 
+  function getSourceIcon(source) {
+    if (source === "github") {
+      return <AiFillGithub />;
+    } else if (source === "colab") {
+      return <SiGooglecolab />;
+    } else {
+      // Return a default icon or null for unknown sources
+      return <AiFillGithub />;
+    }
+  }
+
   return (
     <>
       <h2 className="head-text">
@@ -42,19 +54,26 @@ const Work = () => {
       </h2>
 
       <div className="app__work-filter">
-        {["Data Science", "Web App", "Mobile App", "Flutter", "All"].map(
-          (item, index) => (
-            <div
-              key={index}
-              onClick={() => handleWorkFilter(item)}
-              className={`app__work-filter-item app__flex p-text ${
-                activeFilter === item ? "item-active" : ""
-              }`}
-            >
-              {item}
-            </div>
-          )
-        )}
+        {[
+          "Data Science",
+          "Web App",
+          "Mobile App",
+          "Flutter",
+          "Machine Learning",
+          "Data Analysis",
+          "Data Visualization",
+          "All",
+        ].map((item, index) => (
+          <div
+            key={index}
+            onClick={() => handleWorkFilter(item)}
+            className={`app__work-filter-item app__flex p-text ${
+              activeFilter === item ? "item-active" : ""
+            }`}
+          >
+            {item}
+          </div>
+        ))}
       </div>
 
       <motion.div
@@ -66,7 +85,6 @@ const Work = () => {
           <div className="app__work-item app__flex" key={index}>
             <div className="app__work-img app__flex">
               <img src={urlFor(work.imgUrl)} alt={work.name} />
-
               <motion.div
                 whileHover={{ opacity: [0, 1] }}
                 transition={{
@@ -76,16 +94,19 @@ const Work = () => {
                 }}
                 className="app__work-hover app__flex"
               >
-                <a href={work.projectLink} target="_blank" rel="noreferrer">
-                  <motion.div
-                    whileInView={{ scale: [0, 1] }}
-                    whileHover={{ scale: [1, 0.9] }}
-                    transition={{ duration: 0.25 }}
-                    className="app__flex"
-                  >
-                    <AiFillEye />
-                  </motion.div>
-                </a>
+                {work.projectLink && work.projectLink.trim() !== "" && (
+                  <a href={work.projectLink} target="_blank" rel="noreferrer">
+                    <motion.div
+                      whileInView={{ scale: [0, 1] }}
+                      whileHover={{ scale: [1, 0.9] }}
+                      transition={{ duration: 0.25 }}
+                      className="app__flex"
+                    >
+                      <AiFillEye />
+                    </motion.div>
+                  </a>
+                )}
+
                 <a href={work.codeLink} target="_blank" rel="noreferrer">
                   <motion.div
                     whileInView={{ scale: [0, 1] }}
@@ -93,7 +114,7 @@ const Work = () => {
                     transition={{ duration: 0.25 }}
                     className="app__flex"
                   >
-                    <AiFillGithub />
+                    {getSourceIcon(work.codeSource)}
                   </motion.div>
                 </a>
               </motion.div>
