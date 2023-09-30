@@ -8,7 +8,16 @@ import flutter from "../assets/flutter.png";
 import git from "../assets/git.png";
 import graphql from "../assets/graphql.png";
 import html from "../assets/html.png";
+
 import javascript from "../assets/javascript.png";
+import tableau from "../assets/tableau.png";
+import bigQuery from "../assets/big-query.png";
+import sql from "../assets/sql.png";
+import numpy from "../assets/numpy.png";
+import pandas from "../assets/pandas.png";
+import gcp from "../assets/gcp.png";
+import jupyter from "../assets/jupyter.png";
+
 import mu5 from "../assets/mu5.png";
 import node from "../assets/node.png";
 import python from "../assets/python.png";
@@ -71,4 +80,11 @@ export default {
   skype,
   spotify,
   sd_logo_copyright,
+  numpy,
+  pandas,
+  tableau,
+  sql,
+  bigQuery,
+  gcp,
+  jupyter,
 };
