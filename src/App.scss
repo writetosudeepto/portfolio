@@ -199,3 +199,12 @@
     padding: 2rem;
   }
 }
+
+.app__rights-logo {
+  display: flex;
+  justify-content: flex-end;
+  img {
+    width: 300px;
+    height: 100px;
+  }
+}
