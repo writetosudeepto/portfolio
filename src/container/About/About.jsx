@@ -4,13 +4,33 @@ import "./About.scss";
 import { images } from "../../constants";
 import { urlFor, client } from "../../client";
 import { AppWrap, MotionWrap } from "../../wrapper";
+import { useStore } from "../../store";
 
 const About = () => {
   const [abouts, setAbouts] = useState([]);
+  const { count, increment, decrement } = useStore.getState();
 
   useEffect(() => {
     const query = '*[_type=="abouts"]';
-    client.fetch(query).then((data) => setAbouts(data));
+    console.log("zustand data value before: ", count);
+    client
+      .fetch(query)
+      .then((data) => setAbouts(data))
+      .then(increment())
+      .then(
+        console.log(
+          "zustand data value after increment: ",
+          useStore.getState().count
+        )
+      )
+      .then(decrement())
+      .then(increment())
+      .then(
+        console.log(
+          "zustand data value after decrement and increment: ",
+          useStore.getState().count
+        )
+      );
   }, []);
   return (
     <>
