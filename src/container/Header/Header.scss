@@ -195,11 +195,15 @@
     }
   }
 
-// Dark theme styles for profile background
+// Dark theme styles for home page background
 [data-theme="dark"] {
+  #home {
+    background: #000000 !important;
+  }
+  
   .app__header-img {
     .overlay_circle {
-      filter: invert(1) brightness(0.1);
+      filter: grayscale(1) invert(1) brightness(1);
     }
   }
 }
