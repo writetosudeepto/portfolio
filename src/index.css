@@ -30,6 +30,11 @@
   --white-color: #2a2a2a;
 }
 
+[data-theme="dark"] html,
+[data-theme="dark"] body {
+  background-color: #000000 !important;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

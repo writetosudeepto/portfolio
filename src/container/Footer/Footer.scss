@@ -128,6 +128,52 @@
       margin: 1rem 0;
     }
   }
- 
+
+// Dark mode footer styling
+[data-theme="dark"] {
+  #contact {
+    background: #000000 !important;
+  }
   
+  .app__footer-cards {
+    .app__footer-card {
+      background-color: #2a2a2a;
+      color: var(--black-color);
+      
+      &:hover {
+        box-shadow: 0 0 25px #2a2a2a;
+      }
+      
+      a {
+        color: var(--black-color);
+      }
+    }
+    
+    .app__footer-card:last-child {
+      background-color: #1a1a1a;
+      
+      &:hover {
+        box-shadow: 0 0 25px #1a1a1a;
+      }
+    }
+  }
   
+  .app__footer-form {
+    div {
+      background-color: var(--primary-color);
+      
+      input, textarea {
+        background-color: var(--primary-color);
+        color: var(--black-color);
+        
+        &::placeholder {
+          color: var(--gray-color);
+        }
+      }
+      
+      &:hover {
+        box-shadow: 0 0 25px var(--primary-color);
+      }
+    }
+  }
+}

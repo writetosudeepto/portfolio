@@ -209,3 +209,10 @@
     height: 100px;
   }
 }
+
+// Dark mode styling
+[data-theme="dark"] {
+  .app {
+    background-color: #000000;
+  }
+}
