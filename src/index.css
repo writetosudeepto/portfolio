@@ -20,6 +20,16 @@
   --lightGreen-color: #8BC34A;
 }
 
+[data-theme="dark"] {
+  --primary-color: #1a1a1a;
+  --secondary-color: #4c57d9;
+  --black-color: #ffffff;
+  --lightGray-color: #2d2d2d;
+  --gray-color: #a0a0a0;
+  --brown-color: #5a4a5e;
+  --white-color: #2a2a2a;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

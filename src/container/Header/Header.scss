@@ -194,3 +194,12 @@
       margin: 2rem 0;
     }
   }
+
+// Dark theme styles for profile background
+[data-theme="dark"] {
+  .app__header-img {
+    .overlay_circle {
+      filter: invert(1) brightness(0.1);
+    }
+  }
+}

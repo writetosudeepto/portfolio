@@ -1,6 +1,7 @@
 .app {
   background-color: var(--primary-color);
   font-family: var(--font-base);
+  transition: background-color 0.3s ease-in-out;
 }
 
 .app__whitebg {
