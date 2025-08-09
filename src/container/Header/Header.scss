@@ -484,6 +484,26 @@
         animation-delay: 0.8s;
       }
     }
+    
+    // Bright font colors for tickets in dark mode
+    .badge-cmp, .tag-cmp {
+      p {
+        color: #ffffff !important;
+        opacity: 1 !important;
+        text-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
+      }
+      
+      h1 {
+        color: #ffffff !important;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+      }
+      
+      &::before {
+        color: #ff6b35 !important;
+        opacity: 1 !important;
+        text-shadow: 0 0 3px rgba(255, 107, 53, 0.5);
+      }
+    }
   }
   
   @keyframes fireGlow {
