@@ -135,6 +135,19 @@
         );
         z-index: 3;
       }
+      
+      @media screen and (max-width: 450px) {
+        transform: translateX(-20px) translateY(-10px) rotate(-2deg);
+        margin-bottom: 1.5rem;
+        padding: 1.5rem 1rem;
+        max-width: 280px;
+        min-height: 120px;
+        width: 280px;
+        
+        &::after {
+          right: 25%;
+        }
+      }
     }
     
     // Tag card - positioned differently 
@@ -157,6 +170,18 @@
           rgba(0, 0, 0, 0.6) 6px
         );
         z-index: 3;
+      }
+      
+      @media screen and (max-width: 450px) {
+        transform: translateX(-15px) translateY(10px) rotate(2deg);
+        padding: 1.5rem 1rem;
+        max-width: 280px;
+        min-height: 100px;
+        width: 280px;
+        
+        &::after {
+          left: 20%;
+        }
       }
     }
   
@@ -250,6 +275,13 @@
           width: 70px;
           height: 70px;
         }
+        
+        @media screen and (max-width: 450px) {
+          font-size: 1.8rem;
+          width: 35px;
+          height: 35px;
+          margin-right: 0.7rem;
+        }
       }
       
       div {
@@ -277,6 +309,11 @@
           color: #1a1a1a;
           font-size: 1.6rem;
           line-height: 1.1;
+          
+          @media screen and (max-width: 450px) {
+            font-size: 1.2rem;
+            letter-spacing: 1.2px;
+          }
         }
       }
     }
@@ -284,6 +321,14 @@
     @media screen and (max-width: 1200px) {
       justify-content: flex-start;
       align-items: flex-start;
+    }
+    
+    @media screen and (max-width: 450px) {
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      padding: 0 1rem;
+      margin-left: -1rem;
     }
   }
   
