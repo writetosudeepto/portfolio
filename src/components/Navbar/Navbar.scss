@@ -6,11 +6,11 @@
   align-items: center;
 
   padding: 1rem 2rem;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
   // box-shadow: 0 8px 32px 0 rgba( 31, 38, 135, 0.37 );
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   position: fixed;
   z-index: 2;
 }
@@ -222,9 +222,24 @@
 // Dark mode navbar styling
 [data-theme="dark"] {
   .app__navbar {
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
+  }
+  
+  .app__navbar-logo {
+    img {
+      filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3))
+              drop-shadow(0 0 30px rgba(255, 255, 255, 0.2))
+              drop-shadow(0 0 45px rgba(255, 255, 255, 0.1));
+      transition: all 0.3s ease-in-out;
+      
+      &:hover {
+        filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4))
+                drop-shadow(0 0 40px rgba(255, 255, 255, 0.25))
+                drop-shadow(0 0 60px rgba(255, 255, 255, 0.15));
+      }
+    }
   }
   
   .app__navbar-links {

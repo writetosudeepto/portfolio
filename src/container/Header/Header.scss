@@ -198,7 +198,10 @@
 // Dark theme styles for home page background
 [data-theme="dark"] {
   #home {
-    background: #000000 !important;
+    background: linear-gradient(to bottom, 
+                rgba(255, 255, 255, 0.1) 0%, 
+                rgba(255, 255, 255, 0.05) 10%, 
+                #000000 25%) !important;
   }
   
   .app__header-img {
