@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { HiMenuAlt4, HiX } from "react-icons/hi";
+import { BsSun, BsMoon } from "react-icons/bs";
 import { motion } from "framer-motion";
 import { images } from "../../constants";
+import useTheme from "../../hooks/useTheme";
 import "./Navbar.scss";
 
 const Navbar = () => {
   const [toggle, setToggle] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  
   return (
     <nav className="app__navbar">
       <div className="app__navbar-logo">
@@ -19,6 +23,16 @@ const Navbar = () => {
           </li>
         ))}
       </ul>
+
+      <div className="app__navbar-actions">
+        <button 
+          className="theme-toggle-navbar" 
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {theme === 'light' ? <BsMoon /> : <BsSun />}
+        </button>
+      </div>
 
       <div className="app__navbar-menu">
         <HiMenuAlt4 onClick={() => setToggle(true)} />
