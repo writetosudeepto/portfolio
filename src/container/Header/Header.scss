@@ -243,7 +243,7 @@
         text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
         border: 2px solid #333;
         position: relative;
-        
+        transition: all 0.3s ease-in-out;
         
         @media screen and (min-width: 2000px) {
           font-size: 3.5rem;
@@ -407,14 +407,16 @@
     .badge-cmp,
     .tag-cmp {
       background: radial-gradient(circle at 30% 50%, 
-                  rgba(255, 140, 0, 0.12),
-                  rgba(255, 69, 0, 0.08),
-                  rgba(255, 255, 255, 0.15));
-      border: 1px solid rgba(255, 165, 0, 0.3);
-      box-shadow: 0 0 15px rgba(255, 140, 0, 0.2),
-                  0 0 30px rgba(255, 69, 0, 0.1),
+                  rgba(255, 140, 0, 0.08),
+                  rgba(255, 69, 0, 0.05),
+                  rgba(255, 215, 0, 0.04),
+                  rgba(255, 255, 255, 0.12));
+      border: 1px solid rgba(255, 165, 0, 0.2);
+      box-shadow: 0 0 6px rgba(255, 140, 0, 0.2),
+                  0 0 8px rgba(255, 69, 0, 0.1),
+                  0 0 5px rgba(255, 215, 0, 0.08),
                   0 4px 20px rgba(0, 0, 0, 0.15),
-                  inset 0 0 15px rgba(255, 140, 0, 0.08);
+                  inset 0 0 4px rgba(255, 140, 0, 0.08);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       position: relative;
@@ -486,28 +488,32 @@
   
   @keyframes fireGlow {
     0%, 100% { 
-      box-shadow: 0 0 15px rgba(255, 140, 0, 0.2),
-                  0 0 30px rgba(255, 69, 0, 0.1),
+      box-shadow: 0 0 6px rgba(255, 140, 0, 0.2),
+                  0 0 8px rgba(255, 69, 0, 0.1),
+                  0 0 5px rgba(255, 215, 0, 0.08),
                   0 4px 20px rgba(0, 0, 0, 0.15),
-                  inset 0 0 15px rgba(255, 140, 0, 0.08);
+                  inset 0 0 4px rgba(255, 140, 0, 0.08);
     }
     25% { 
-      box-shadow: 0 0 20px rgba(255, 140, 0, 0.25),
-                  0 0 40px rgba(255, 69, 0, 0.15),
+      box-shadow: 0 0 8px rgba(255, 140, 0, 0.25),
+                  0 0 10px rgba(255, 69, 0, 0.15),
+                  0 0 6px rgba(255, 215, 0, 0.12),
                   0 4px 20px rgba(0, 0, 0, 0.15),
-                  inset 0 0 20px rgba(255, 140, 0, 0.12);
+                  inset 0 0 5px rgba(255, 140, 0, 0.12);
     }
     50% { 
-      box-shadow: 0 0 25px rgba(255, 140, 0, 0.22),
-                  0 0 35px rgba(255, 69, 0, 0.12),
+      box-shadow: 0 0 7px rgba(255, 140, 0, 0.22),
+                  0 0 9px rgba(255, 69, 0, 0.12),
+                  0 0 5px rgba(255, 215, 0, 0.1),
                   0 4px 20px rgba(0, 0, 0, 0.15),
-                  inset 0 0 18px rgba(255, 140, 0, 0.1);
+                  inset 0 0 4px rgba(255, 140, 0, 0.1);
     }
     75% { 
-      box-shadow: 0 0 18px rgba(255, 140, 0, 0.18),
-                  0 0 32px rgba(255, 69, 0, 0.08),
+      box-shadow: 0 0 5px rgba(255, 140, 0, 0.18),
+                  0 0 7px rgba(255, 69, 0, 0.08),
+                  0 0 4px rgba(255, 215, 0, 0.06),
                   0 4px 20px rgba(0, 0, 0, 0.15),
-                  inset 0 0 16px rgba(255, 140, 0, 0.06);
+                  inset 0 0 3px rgba(255, 140, 0, 0.06);
     }
   }
   
@@ -537,5 +543,58 @@
       opacity: 0.5;
       transform: scale(1.01) translateX(1px);
     }
+  }
+}
+
+// Eye animation styles for theme transitions
+.app__header-badge .badge-cmp span {
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(135deg, #2c2c2c, #4a4a4a);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2;
+    transform: translateY(-100%);
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(135deg, #2c2c2c, #4a4a4a);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2;
+    transform: translateY(100%);
+  }
+}
+
+// Light theme - eye closed
+:root .app__header-badge .badge-cmp span {
+  &::before {
+    transform: translateY(20%);
+  }
+  
+  &::after {
+    transform: translateY(-20%);
+  }
+}
+
+// Dark theme - eye open
+[data-theme="dark"] .app__header-badge .badge-cmp span {
+  &::before {
+    transform: translateY(-100%);
+  }
+  
+  &::after {
+    transform: translateY(100%);
   }
 }
