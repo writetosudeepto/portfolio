@@ -24,17 +24,18 @@ const Navbar = () => {
         ))}
       </ul>
 
-      <div className="app__navbar-actions">
-        <button 
-          className="theme-toggle-navbar" 
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          {theme === 'light' ? <BsMoon /> : <BsSun />}
-        </button>
-      </div>
+      <div className="app__navbar-right">
+        <div className="app__navbar-actions">
+          <button 
+            className="theme-toggle-navbar" 
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+            {theme === 'light' ? <BsMoon /> : <BsSun />}
+          </button>
+        </div>
 
-      <div className="app__navbar-menu">
+        <div className="app__navbar-menu">
         <HiMenuAlt4 onClick={() => setToggle(true)} />
 
         {toggle && (
@@ -58,6 +59,7 @@ const Navbar = () => {
             </ul>
           </div>
         )}
+        </div>
       </div>
     </nav>
   );

@@ -31,10 +31,21 @@
   }
 }
 
+.app__navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  
+  @media screen and (min-width: 901px) {
+    .app__navbar-menu {
+      display: none;
+    }
+  }
+}
+
 .app__navbar-actions {
   display: flex;
   align-items: center;
-  margin-right: 1rem;
 
   .theme-toggle-navbar {
     width: 35px;
@@ -64,9 +75,6 @@
     }
   }
 
-  @media screen and (max-width: 900px) {
-    display: none;
-  }
 }
 
 .app__navbar-links {
