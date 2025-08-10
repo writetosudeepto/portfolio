@@ -1,15 +1,14 @@
 import React from 'react'
 import { About , Footer , Header, Skills, Testimonial, Work } from './container'
 import { Navbar, DarkModeAudio } from './components'
-import SpaceBackground from './components/SpaceBackground/SpaceBackground'
-import './components/SpaceBackground/SpaceBackground.scss'
+import SimpleSpace from './components/SimpleSpace/SimpleSpace'
 import './App.scss'
 
 const App = () => {
   return (
     <div className="app">
       <DarkModeAudio />
-      <SpaceBackground />
+      <SimpleSpace />
       <Navbar />
       <Header />
       <About />
