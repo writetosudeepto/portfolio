@@ -23,12 +23,12 @@ const SocialMedia = () => {
       >
         <TbBrandLinkedin />
       </div>
-      <div>
-        <SiHackerrank
-          onClick={() =>
-            handleIconClick("https://www.hackerrank.com/writetosudeepto")
-          }
-        />
+      <div
+        onClick={() =>
+          handleIconClick("https://www.hackerrank.com/writetosudeepto")
+        }
+      >
+        <SiHackerrank />
       </div>
 
       <div
