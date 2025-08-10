@@ -562,6 +562,238 @@ function WitchRider({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDa
   );
 }
 
+// Moebius-style monkey pizza delivery boy on scooter
+function MonkeyPizzaDelivery({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, monkeyType = 0 }) {
+  const groupRef = useRef();
+  const wheelRef = useRef();
+  const pizzaBoxRef = useRef();
+  const helmetRef = useRef();
+
+  useFrame((state) => {
+    if (groupRef.current) {
+      // Move towards user
+      groupRef.current.position.z += velocity[2];
+      groupRef.current.position.x += velocity[0] * 0.07;
+      groupRef.current.position.y += velocity[1] * 0.07;
+
+      // Scooter bouncing and leaning
+      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.8 + position[0] * 0.2) * 0.08;
+      groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.04;
+      groupRef.current.position.y += Math.sin(state.clock.elapsedTime * 1.2 + position[1] * 0.4) * 0.015;
+
+      // Front wheel spinning
+      if (wheelRef.current) {
+        wheelRef.current.rotation.x += 0.4;
+      }
+
+      // Pizza box slight bouncing
+      if (pizzaBoxRef.current) {
+        pizzaBoxRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 2) * 0.1;
+        pizzaBoxRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 1.5) * 0.05;
+      }
+
+      // Helmet slight bobbing
+      if (helmetRef.current) {
+        helmetRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 1.8) * 0.02;
+      }
+
+      // Reset when out of view
+      if (groupRef.current.position.z > 85) {
+        const newX = (Math.random() - 0.5) * 150;
+        const newY = (Math.random() - 0.5) * 30;
+        const newZ = -320 - Math.random() * 80;
+        
+        groupRef.current.position.set(newX, newY, newZ);
+      }
+    }
+  });
+
+  // Moebius monkey delivery color schemes
+  const monkeySchemes = [
+    {
+      fur: isDarkMode ? '#8b4513' : '#654321', // Brown monkey
+      uniform: isDarkMode ? '#ff0000' : '#cc0000', // Red delivery uniform
+      scooter: isDarkMode ? '#0066cc' : '#004499', // Blue scooter
+      helmet: isDarkMode ? '#ffffff' : '#f0f0f0', // White helmet
+      pizza: isDarkMode ? '#ffaa00' : '#ff8800' // Pizza box orange
+    },
+    {
+      fur: isDarkMode ? '#a0522d' : '#8b4513', // Darker brown
+      uniform: isDarkMode ? '#00aa00' : '#008800', // Green uniform
+      scooter: isDarkMode ? '#ff6600' : '#e55500', // Orange scooter
+      helmet: isDarkMode ? '#ffff00' : '#dddd00', // Yellow helmet
+      pizza: isDarkMode ? '#ff4444' : '#ee3333' // Red pizza box
+    },
+    {
+      fur: isDarkMode ? '#cd853f' : '#a0522d', // Golden brown
+      uniform: isDarkMode ? '#4b0082' : '#330055', // Purple uniform
+      scooter: isDarkMode ? '#32cd32' : '#28a028', // Green scooter
+      helmet: isDarkMode ? '#ff69b4' : '#e55a9f', // Pink helmet
+      pizza: isDarkMode ? '#ffa500' : '#ff8c00' // Orange pizza box
+    }
+  ];
+  
+  const colors = monkeySchemes[monkeyType % monkeySchemes.length];
+
+  return (
+    <group ref={groupRef} position={position}>
+      {/* Scooter base/deck */}
+      <mesh position={[0, -size * 0.3, size * 0.2]}>
+        <boxGeometry args={[size * 0.3, size * 0.1, size * 1.8]} />
+        <meshBasicMaterial color={colors.scooter} />
+      </mesh>
+      
+      {/* Scooter front stem */}
+      <mesh position={[0, size * 0.2, size * 0.8]} rotation={[Math.PI / 12, 0, 0]}>
+        <cylinderGeometry args={[size * 0.03, size * 0.03, size * 1, 8]} />
+        <meshBasicMaterial color={colors.scooter} />
+      </mesh>
+      
+      {/* Handlebars */}
+      <mesh position={[0, size * 0.7, size * 1.1]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[size * 0.02, size * 0.02, size * 0.6, 8]} />
+        <meshBasicMaterial color="#333333" />
+      </mesh>
+      
+      {/* Front wheel */}
+      <mesh ref={wheelRef} position={[0, -size * 0.4, size * 1.2]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[size * 0.3, size * 0.3, size * 0.1, 12]} />
+        <meshBasicMaterial color="#2c2c2c" />
+      </mesh>
+      
+      {/* Rear wheel */}
+      <mesh position={[0, -size * 0.4, -size * 0.8]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[size * 0.25, size * 0.25, size * 0.08, 12]} />
+        <meshBasicMaterial color="#2c2c2c" />
+      </mesh>
+      
+      {/* Scooter body/engine */}
+      <mesh position={[0, -size * 0.1, size * 0.1]}>
+        <boxGeometry args={[size * 0.4, size * 0.3, size * 0.8]} />
+        <meshBasicMaterial color={colors.scooter} />
+      </mesh>
+      
+      {/* Monkey body */}
+      <mesh position={[0, size * 0.2, size * 0.1]}>
+        <boxGeometry args={[size * 0.4, size * 0.8, size * 0.3]} />
+        <meshBasicMaterial color={colors.uniform} />
+      </mesh>
+      
+      {/* Monkey head */}
+      <mesh position={[0, size * 0.7, size * 0.2]}>
+        <sphereGeometry args={[size * 0.2, 8, 8]} />
+        <meshBasicMaterial color={colors.fur} />
+      </mesh>
+      
+      {/* Monkey snout */}
+      <mesh position={[0, size * 0.65, size * 0.35]}>
+        <sphereGeometry args={[size * 0.08, 6, 6]} />
+        <meshBasicMaterial color={colors.fur} />
+      </mesh>
+      
+      {/* Delivery helmet */}
+      <mesh ref={helmetRef} position={[0, size * 0.85, size * 0.15]}>
+        <sphereGeometry args={[size * 0.22, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.75]} />
+        <meshBasicMaterial color={colors.helmet} />
+      </mesh>
+      
+      {/* Helmet visor */}
+      <mesh position={[0, size * 0.8, size * 0.35]}>
+        <boxGeometry args={[size * 0.25, size * 0.15, size * 0.02]} />
+        <meshBasicMaterial color="#87ceeb" transparent opacity={0.6} />
+      </mesh>
+      
+      {/* Monkey arms holding handlebars */}
+      <mesh position={[size * 0.3, size * 0.4, size * 0.9]} rotation={[0, 0, -Math.PI / 6]}>
+        <cylinderGeometry args={[size * 0.05, size * 0.05, size * 0.5, 8]} />
+        <meshBasicMaterial color={colors.fur} />
+      </mesh>
+      <mesh position={[-size * 0.3, size * 0.4, size * 0.9]} rotation={[0, 0, Math.PI / 6]}>
+        <cylinderGeometry args={[size * 0.05, size * 0.05, size * 0.5, 8]} />
+        <meshBasicMaterial color={colors.fur} />
+      </mesh>
+      
+      {/* Monkey legs on scooter */}
+      <mesh position={[size * 0.1, -size * 0.1, size * 0.3]} rotation={[Math.PI / 8, 0, 0]}>
+        <cylinderGeometry args={[size * 0.06, size * 0.06, size * 0.6, 8]} />
+        <meshBasicMaterial color={colors.fur} />
+      </mesh>
+      <mesh position={[-size * 0.1, -size * 0.1, size * 0.3]} rotation={[Math.PI / 8, 0, 0]}>
+        <cylinderGeometry args={[size * 0.06, size * 0.06, size * 0.6, 8]} />
+        <meshBasicMaterial color={colors.fur} />
+      </mesh>
+      
+      {/* Monkey tail */}
+      <mesh position={[0, size * 0.1, -size * 0.4]} rotation={[Math.PI / 4, 0, Math.PI / 8]}>
+        <cylinderGeometry args={[size * 0.03, size * 0.02, size * 0.8, 6]} />
+        <meshBasicMaterial color={colors.fur} />
+      </mesh>
+      
+      {/* Pizza delivery box on back */}
+      <mesh ref={pizzaBoxRef} position={[0, size * 0.6, -size * 0.3]}>
+        <boxGeometry args={[size * 0.6, size * 0.6, size * 0.1]} />
+        <meshBasicMaterial color={colors.pizza} />
+      </mesh>
+      
+      {/* Pizza box text/logo */}
+      <mesh position={[0, size * 0.6, -size * 0.24]}>
+        <boxGeometry args={[size * 0.4, size * 0.4, size * 0.01]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      
+      {/* Pizza box "PIZZA" text simulation with small boxes */}
+      <mesh position={[0, size * 0.65, -size * 0.23]}>
+        <boxGeometry args={[size * 0.3, size * 0.08, size * 0.005]} />
+        <meshBasicMaterial color="#ff0000" />
+      </mesh>
+      
+      {/* Delivery bag straps */}
+      <mesh position={[size * 0.15, size * 0.4, -size * 0.25]} rotation={[0, 0, Math.PI / 6]}>
+        <cylinderGeometry args={[size * 0.02, size * 0.02, size * 0.4, 6]} />
+        <meshBasicMaterial color="#333333" />
+      </mesh>
+      <mesh position={[-size * 0.15, size * 0.4, -size * 0.25]} rotation={[0, 0, -Math.PI / 6]}>
+        <cylinderGeometry args={[size * 0.02, size * 0.02, size * 0.4, 6]} />
+        <meshBasicMaterial color="#333333" />
+      </mesh>
+      
+      {/* Scooter headlight */}
+      <mesh position={[0, size * 0.1, size * 1.4]}>
+        <sphereGeometry args={[size * 0.08, 6, 6]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+      </mesh>
+      
+      {/* Exhaust pipe */}
+      <mesh position={[size * 0.2, -size * 0.2, -size * 0.6]} rotation={[Math.PI / 6, 0, 0]}>
+        <cylinderGeometry args={[size * 0.04, size * 0.04, size * 0.3, 8]} />
+        <meshBasicMaterial color="#666666" />
+      </mesh>
+      
+      {/* Small exhaust smoke */}
+      <mesh position={[size * 0.2, size * 0.1, -size * 0.8]}>
+        <sphereGeometry args={[size * 0.05, 4, 4]} />
+        <meshBasicMaterial color="#cccccc" transparent opacity={0.5} />
+      </mesh>
+      
+      {/* Monkey eyes */}
+      <mesh position={[size * 0.08, size * 0.75, size * 0.32]}>
+        <sphereGeometry args={[size * 0.03, 4, 4]} />
+        <meshBasicMaterial color="#000000" />
+      </mesh>
+      <mesh position={[-size * 0.08, size * 0.75, size * 0.32]}>
+        <sphereGeometry args={[size * 0.03, 4, 4]} />
+        <meshBasicMaterial color="#000000" />
+      </mesh>
+      
+      {/* Delivery uniform logo */}
+      <mesh position={[0, size * 0.3, size * 0.26]}>
+        <boxGeometry args={[size * 0.15, size * 0.15, size * 0.01]} />
+        <meshBasicMaterial color="#ffff00" />
+      </mesh>
+    </group>
+  );
+}
+
 // Moebius-style Aladdin on magic carpet
 function AladdinRider({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, aladdinType = 0 }) {
   const groupRef = useRef();
@@ -980,6 +1212,24 @@ function SimpleSpaceScene() {
     }));
   }, []);
 
+  const monkeyDelivery = useMemo(() => {
+    return Array.from({ length: 3 }, (_, i) => ({
+      id: i,
+      position: [
+        (Math.random() - 0.5) * 130,
+        (Math.random() - 0.5) * 25 + 5, // Lower altitude for ground-level delivery
+        -280 - i * 90 - Math.random() * 70 // Medium distance back positions
+      ],
+      velocity: [
+        (Math.random() - 0.5) * 0.08,
+        (Math.random() - 0.5) * 0.04,
+        0.85 // Fast delivery speed but not too fast
+      ],
+      size: Math.random() * 0.2 + 1.0, // Good size for monkey and scooter
+      type: i % 3 // Different monkey delivery color schemes
+    }));
+  }, []);
+
   return (
     <>
       {/* Basic lighting */}
@@ -1056,6 +1306,18 @@ function SimpleSpaceScene() {
           size={rider.size}
           isDarkMode={isDarkMode}
           aladdinType={rider.type}
+        />
+      ))}
+
+      {/* Monkey Pizza Delivery */}
+      {monkeyDelivery.map((monkey) => (
+        <MonkeyPizzaDelivery
+          key={`monkey-${monkey.id}`}
+          position={monkey.position}
+          velocity={monkey.velocity}
+          size={monkey.size}
+          isDarkMode={isDarkMode}
+          monkeyType={monkey.type}
         />
       ))}
     </>

@@ -10,7 +10,6 @@
     "@react-spring/web": "^10.0.1",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
-    "@react-three/postprocessing": "^3.0.4",
     "@sanity/client": "^5.4.0",
     "@sanity/image-url": "^1.0.2",
     "@syncfusion/ej2": "^23.1.37",
