@@ -21,12 +21,14 @@ const PlanetarySkillCircles = () => {
   const containerRef = useRef(null);
   const animationRef = useRef(null);
   
-  // Define skills with their properties - responsive sizes
+  // Define skills with their properties - much smaller on mobile
   const getMobileSize = (size) => {
-    if (window.innerWidth <= 768) {
-      return Math.round(size * 0.5); // 50% smaller on mobile
+    if (window.innerWidth <= 450) {
+      return Math.round(size * 0.25); // Much smaller on small mobile
+    } else if (window.innerWidth <= 768) {
+      return Math.round(size * 0.35); // Smaller on mobile
     } else if (window.innerWidth <= 1200) {
-      return Math.round(size * 0.7); // 30% smaller on tablets
+      return Math.round(size * 0.6); // Smaller on tablets
     }
     return size; // Full size on desktop
   };
@@ -50,51 +52,45 @@ const PlanetarySkillCircles = () => {
 
     // Use a timeout to ensure proper dimensions after component mount
     const initializeCircles = () => {
-      const containerRect = container.getBoundingClientRect();
-      const isMobile = window.innerWidth <= 768;
-      const isTablet = window.innerWidth <= 1200;
+      // Use full window dimensions
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
       
-      let containerWidth, containerHeight;
-      if (isMobile) {
-        containerWidth = Math.max(containerRect.width, 300); // Smaller minimum for mobile
-        containerHeight = Math.max(containerRect.height, 300);
-      } else if (isTablet) {
-        containerWidth = Math.max(containerRect.width, 450);
-        containerHeight = Math.max(containerRect.height, 400);
-      } else {
-        containerWidth = Math.max(containerRect.width, 600);
-        containerHeight = Math.max(containerRect.height, 500);
-      }
+      // Gravitational center point (center of screen)
+      const centerX = windowWidth / 2;
+      const centerY = windowHeight / 2;
 
       const initialCircles = skillsData.map((skill, index) => {
-        const radius = skill.size / 2;
+        // Create orbital distances and angles for each planet
+        const minOrbit = Math.min(windowWidth, windowHeight) * 0.15; // Minimum orbital radius
+        const maxOrbit = Math.min(windowWidth, windowHeight) * 0.4; // Maximum orbital radius
+        const orbitRadius = minOrbit + (maxOrbit - minOrbit) * (index / (skillsData.length - 1));
         
-        // Force some circles to the left side, some to the right
-        let x, y;
-        if (index < 3) {
-          // First 3 circles on the left side (0-40% of width)
-          x = radius + Math.random() * (containerWidth * 0.4 - skill.size);
-        } else if (index >= 5) {
-          // Last 2 circles on the right side (60-100% of width)
-          x = containerWidth * 0.6 + Math.random() * (containerWidth * 0.4 - skill.size);
-        } else {
-          // Middle circles can be anywhere
-          x = radius + Math.random() * (containerWidth - skill.size);
-        }
+        // Random starting angle for orbital position
+        const angle = (Math.PI * 2 * index) / skillsData.length + Math.random() * 0.5;
         
-        y = radius + Math.random() * (containerHeight - skill.size);
+        // Calculate initial position based on orbital radius and angle
+        const x = centerX + Math.cos(angle) * orbitRadius;
+        const y = centerY + Math.sin(angle) * orbitRadius;
+        
+        // Orbital velocity (slower for planets further from center)
+        const baseSpeed = 0.001; // Very slow planetary speed
+        const orbitSpeed = baseSpeed * (minOrbit / orbitRadius); // Slower for distant planets
         
         return {
           id: index,
           x: x,
           y: y,
-          vx: (Math.random() - 0.5) * 0.8, // Slower velocity X
-          vy: (Math.random() - 0.5) * 0.8, // Slower velocity Y
+          centerX: centerX,
+          centerY: centerY,
+          orbitRadius: orbitRadius,
+          angle: angle,
+          orbitSpeed: orbitSpeed * (Math.random() * 0.5 + 0.75), // Small variation in speed
+          clockwise: index % 2 === 0, // Some orbit clockwise, some counterclockwise
           size: skill.size,
           image: skill.image,
           color: skill.color,
-          mass: skill.size * 0.01, // Mass for collision physics
-          collisionEffect: 0, // For visual collision effects
+          collisionEffect: 0,
         };
       });
 
@@ -105,8 +101,8 @@ const PlanetarySkillCircles = () => {
     setTimeout(initializeCircles, 100);
   }, []);
 
-  // Collision detection function
-  const checkCollisions = (circles) => {
+  // Simple proximity visual effect (no collision physics for planets)
+  const checkProximityEffects = (circles) => {
     const updatedCircles = [...circles];
     
     for (let i = 0; i < updatedCircles.length; i++) {
@@ -117,38 +113,13 @@ const PlanetarySkillCircles = () => {
         const dx = circle2.x - circle1.x;
         const dy = circle2.y - circle1.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const minDistance = (circle1.size + circle2.size) / 2;
+        const proximityThreshold = (circle1.size + circle2.size) * 1.5;
         
-        if (distance < minDistance) {
-          // Collision detected - apply physics
-          const angle = Math.atan2(dy, dx);
-          const sin = Math.sin(angle);
-          const cos = Math.cos(angle);
-          
-          // Separate circles
-          const overlap = minDistance - distance;
-          const separation = overlap / 2;
-          
-          circle1.x -= separation * cos;
-          circle1.y -= separation * sin;
-          circle2.x += separation * cos;
-          circle2.y += separation * sin;
-          
-          // Exchange velocities (simplified elastic collision)
-          const v1 = circle1.vx * cos + circle1.vy * sin;
-          const v2 = circle2.vx * cos + circle2.vy * sin;
-          
-          const finalV1 = ((circle1.mass - circle2.mass) * v1 + 2 * circle2.mass * v2) / (circle1.mass + circle2.mass);
-          const finalV2 = ((circle2.mass - circle1.mass) * v2 + 2 * circle1.mass * v1) / (circle1.mass + circle2.mass);
-          
-          circle1.vx = finalV1 * cos - circle1.vy * sin;
-          circle1.vy = finalV1 * sin + circle1.vy * cos;
-          circle2.vx = finalV2 * cos - circle2.vy * sin;
-          circle2.vy = finalV2 * sin + circle2.vy * cos;
-          
-          // Add collision effect
-          circle1.collisionEffect = 15;
-          circle2.collisionEffect = 15;
+        // Subtle visual effect when planets are close (no physics)
+        if (distance < proximityThreshold) {
+          const intensity = Math.max(0, 5 - (distance / proximityThreshold) * 5);
+          circle1.collisionEffect = Math.max(circle1.collisionEffect, intensity);
+          circle2.collisionEffect = Math.max(circle2.collisionEffect, intensity);
         }
       }
     }
@@ -156,58 +127,32 @@ const PlanetarySkillCircles = () => {
     return updatedCircles;
   };
 
-  // Animation loop
+  // Animation loop for orbital physics
   useEffect(() => {
     const animate = () => {
       setCircles(prevCircles => {
-        const container = containerRef.current;
-        if (!container || prevCircles.length === 0) return prevCircles;
+        if (prevCircles.length === 0) return prevCircles;
 
-        const containerRect = container.getBoundingClientRect();
-        const isMobile = window.innerWidth <= 768;
-        const isTablet = window.innerWidth <= 1200;
-        
-        let containerWidth, containerHeight;
-        if (isMobile) {
-          containerWidth = Math.max(containerRect.width, 300);
-          containerHeight = Math.max(containerRect.height, 300);
-        } else if (isTablet) {
-          containerWidth = Math.max(containerRect.width, 450);
-          containerHeight = Math.max(containerRect.height, 400);
-        } else {
-          containerWidth = Math.max(containerRect.width, 600);
-          containerHeight = Math.max(containerRect.height, 500);
-        }
-        
         let updatedCircles = prevCircles.map(circle => {
-          let newX = circle.x + circle.vx;
-          let newY = circle.y + circle.vy;
-          let newVx = circle.vx;
-          let newVy = circle.vy;
-
-          // Boundary collision detection with proper container dimensions
-          const radius = circle.size / 2;
-          if (newX - radius <= 0 || newX + radius >= containerWidth) {
-            newVx = -newVx;
-            newX = Math.max(radius, Math.min(containerWidth - radius, newX));
-          }
-          if (newY - radius <= 0 || newY + radius >= containerHeight) {
-            newVy = -newVy;
-            newY = Math.max(radius, Math.min(containerHeight - radius, newY));
-          }
-
+          // Update orbital angle based on speed and direction
+          const angleIncrement = circle.clockwise ? circle.orbitSpeed : -circle.orbitSpeed;
+          const newAngle = circle.angle + angleIncrement;
+          
+          // Calculate new position based on orbital physics
+          const newX = circle.centerX + Math.cos(newAngle) * circle.orbitRadius;
+          const newY = circle.centerY + Math.sin(newAngle) * circle.orbitRadius;
+          
           return {
             ...circle,
             x: newX,
             y: newY,
-            vx: newVx,
-            vy: newVy,
-            collisionEffect: Math.max(0, circle.collisionEffect - 1),
+            angle: newAngle,
+            collisionEffect: Math.max(0, circle.collisionEffect - 0.5), // Slow fade
           };
         });
 
-        // Check for collisions between circles
-        updatedCircles = checkCollisions(updatedCircles);
+        // Check for proximity effects (subtle visual feedback)
+        updatedCircles = checkProximityEffects(updatedCircles);
         
         return updatedCircles;
       });

@@ -351,31 +351,16 @@
     }
   }
 
-  // Planetary skills container
+  // Planetary skills container - full window coverage like astronaut
   .planetary-skills-container {
-    width: 100%;
-    height: 100%;
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 5; // Above background, below navbar
+    pointer-events: none; // Allow clicking through to content below
     overflow: hidden;
-    min-height: 600px;
-    min-width: 400px;
-
-    @media screen and (max-width: 1200px) {
-      min-height: 450px;
-      min-width: 300px;
-      width: 100%;
-    }
-
-    @media screen and (max-width: 768px) {
-      min-height: 300px;
-      min-width: 250px;
-      width: 100%;
-    }
-
-    @media screen and (max-width: 450px) {
-      min-height: 280px;
-      min-width: 200px;
-    }
   }
 
   // Individual planetary circles
@@ -389,10 +374,11 @@
     cursor: pointer;
     transition: all 0.3s ease;
     border: 2px solid transparent;
+    pointer-events: auto; // Allow interaction with circles
 
     &:hover {
       transform: scale(1.1) !important;
-      z-index: 10;
+      z-index: 15;
       border-color: rgba(255, 255, 255, 0.3);
     }
 
@@ -409,6 +395,13 @@
 
     &:nth-child(odd) {
       animation: planetaryRotate 25s linear infinite reverse;
+    }
+
+    // Smaller sizes on mobile to prevent cutoff
+    @media screen and (max-width: 450px) {
+      &:hover {
+        transform: scale(1.05) !important; // Less scaling on mobile
+      }
     }
   }
 
