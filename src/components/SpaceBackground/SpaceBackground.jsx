@@ -97,8 +97,8 @@ function MinecraftBlock({ position = [0, 0, 0], speed = 0.1, size = 0.2, blockTy
           color={currentColors[blockType]}
           transparent={false}
           flatShading={true}
-          emissive={isDarkMode ? '#000000' : currentColors[blockType]}
-          emissiveIntensity={isDarkMode ? 0 : 0.1}
+          emissive={isDarkMode ? currentColors[blockType] : currentColors[blockType]}
+          emissiveIntensity={isDarkMode ? 0.3 : 0.1}
         />
       </mesh>
       
@@ -191,7 +191,7 @@ function SpaceScene() {
     const blocks = [];
     
     // Create blocks distributed across different viewport areas
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 120; i++) {
       blocks.push({
         key: `block-${i}`,
         position: [
@@ -200,7 +200,7 @@ function SpaceScene() {
           Math.random() * -150 - 10  // Much deeper spawn area
         ],
         speed: Math.random() * 0.6 + 0.15, // Even faster speeds
-        size: Math.random() * 1.0 + 0.5,   // Larger blocks
+        size: Math.random() * 1.5 + 0.8,   // Even larger blocks
         blockType: blockTypes[Math.floor(Math.random() * blockTypes.length)]
       });
     }

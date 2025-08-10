@@ -260,9 +260,33 @@
 // Dark mode styling with space theme
 [data-theme="dark"] {
   .app {
-    background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 100%);
+    background: #000000;
     position: relative;
     overflow: hidden;
+  }
+  
+  .app__whitebg {
+    background-color: #000000 !important;
+  }
+  
+  .app__primarybg {
+    background-color: #000000 !important;
+  }
+  
+  #home {
+    background: transparent !important;
+  }
+  
+  #about {
+    background: #000000 !important;
+  }
+  
+  #work {
+    background: #000000 !important;
+  }
+  
+  #skills {
+    background: #000000 !important;
   }
 }
 
