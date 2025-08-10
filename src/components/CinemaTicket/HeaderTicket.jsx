@@ -29,6 +29,8 @@ const TicketCard = styled(motion(Card))(({ theme }) => ({
   '@media screen and (max-width: 768px)': {
     maxWidth: '100%',
     margin: '0 auto',
+    minHeight: '160px',
+    maxHeight: '180px',
   },
 }));
 
@@ -111,7 +113,7 @@ const MainContent = styled(CardContent)(({ theme }) => ({
   
   '@media screen and (max-width: 768px)': {
     paddingRight: 80,
-    padding: '1.5rem 1rem',
+    padding: '1rem 0.8rem',
   },
 }));
 
@@ -120,11 +122,20 @@ const SystemStatus = styled(Box)(({ theme }) => ({
   alignItems: 'center',
   marginBottom: 16,
   gap: 16,
+  
+  '@media screen and (max-width: 768px)': {
+    marginBottom: 8,
+    gap: 8,
+  },
 }));
 
 const StatusIcon = styled(Box)(({ theme }) => ({
   fontSize: '1.8rem',
   opacity: 0.8,
+  
+  '@media screen and (max-width: 768px)': {
+    fontSize: '1.3rem',
+  },
 }));
 
 const StatusText = styled(Typography)(({ theme }) => ({
@@ -138,7 +149,9 @@ const StatusText = styled(Typography)(({ theme }) => ({
   textShadow: '0 0 6px #ff4444, 0 0 10px rgba(255, 68, 68, 0.3)',
   
   '@media screen and (max-width: 768px)': {
-    fontSize: '0.8rem',
+    fontSize: '0.7rem',
+    letterSpacing: 2,
+    marginBottom: 6,
   },
 }));
 
@@ -167,7 +180,9 @@ const DeveloperName = styled(Typography)(({ theme }) => ({
   textShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
   
   '@media screen and (max-width: 768px)': {
-    fontSize: '1.5rem',
+    fontSize: '1.2rem',
+    letterSpacing: 2,
+    marginBottom: 8,
   },
 }));
 
@@ -191,7 +206,14 @@ const ProtocolText = styled(Typography)(({ theme }) => ({
   },
   
   '@media screen and (max-width: 768px)': {
-    fontSize: '0.8rem',
+    fontSize: '0.65rem',
+    lineHeight: 1.3,
+    marginBottom: 4,
+    letterSpacing: 1,
+    
+    '&:last-child': {
+      fontSize: '0.6rem',
+    },
   },
 }));
 
