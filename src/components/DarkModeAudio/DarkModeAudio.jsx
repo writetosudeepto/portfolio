@@ -3,7 +3,7 @@ import { images } from '../../constants';
 
 const DarkModeAudio = () => {
   const audioRef = useRef(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
 
   // Detect theme changes
@@ -12,21 +12,19 @@ const DarkModeAudio = () => {
       const theme = document.documentElement.getAttribute('data-theme');
       const newIsDarkMode = theme === 'dark';
       
-      // Only update if theme actually changed
-      if (newIsDarkMode !== isDarkMode) {
-        setIsDarkMode(newIsDarkMode);
-        
-        if (newIsDarkMode && !hasStartedPlaying) {
-          // Start playing when entering dark mode for the first time
-          playAudio();
-          setHasStartedPlaying(true);
-        } else if (newIsDarkMode && hasStartedPlaying) {
-          // Resume if returning to dark mode
-          playAudio();
-        } else if (!newIsDarkMode) {
-          // Pause when leaving dark mode
-          pauseAudio();
-        }
+      // Update dark mode state
+      setIsDarkMode(newIsDarkMode);
+      
+      if (newIsDarkMode && !hasStartedPlaying) {
+        // Start playing when entering dark mode for the first time (including on page load)
+        playAudio();
+        setHasStartedPlaying(true);
+      } else if (newIsDarkMode && hasStartedPlaying) {
+        // Resume if returning to dark mode
+        playAudio();
+      } else if (!newIsDarkMode) {
+        // Pause when leaving dark mode
+        pauseAudio();
       }
     };
 
@@ -66,15 +64,18 @@ const DarkModeAudio = () => {
   // Handle user interaction to enable audio (required by most browsers)
   useEffect(() => {
     const handleUserInteraction = () => {
-      if (isDarkMode && hasStartedPlaying && audioRef.current) {
+      if (isDarkMode && audioRef.current) {
         if (audioRef.current.paused) {
           playAudio();
+          if (!hasStartedPlaying) {
+            setHasStartedPlaying(true);
+          }
         }
       }
     };
 
     // Add event listeners for user interactions
-    const events = ['click', 'touchstart', 'keydown'];
+    const events = ['click', 'touchstart', 'keydown', 'mousemove'];
     events.forEach(event => {
       document.addEventListener(event, handleUserInteraction, { once: true });
     });

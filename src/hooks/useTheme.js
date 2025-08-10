@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 const useTheme = () => {
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('portfolio-theme');
-    return savedTheme || 'light';
+    return savedTheme || 'dark';
   });
 
   useEffect(() => {
