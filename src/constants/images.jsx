@@ -37,6 +37,8 @@ import circle from "../assets/circle.svg";
 import logo from "../assets/logo.png";
 import sd_logo_copyright from "../assets/sd-logo-copyright.png";
 
+import burzumAudio from "../assets/burzum.mp3";
+
 import adidas from "../assets/adidas.png";
 import amazon from "../assets/amazon.png";
 import asus from "../assets/asus.png";
@@ -87,4 +89,5 @@ export default {
   bigQuery,
   gcp,
   jupyter,
+  burzumAudio,
 };
