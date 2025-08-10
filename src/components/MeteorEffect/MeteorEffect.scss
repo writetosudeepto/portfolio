@@ -1,0 +1,28 @@
+.meteor-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.8;
+  
+  // Enhanced glow effect for dark theme
+  [data-theme="dark"] & {
+    filter: 
+      drop-shadow(0 0 5px rgba(100, 200, 255, 0.5))
+      drop-shadow(0 0 10px rgba(100, 200, 255, 0.3))
+      drop-shadow(0 0 20px rgba(100, 200, 255, 0.2));
+    opacity: 0.9;
+  }
+  
+  // Enhanced visibility for light theme
+  [data-theme="light"] & {
+    filter: 
+      drop-shadow(0 0 4px rgba(150, 50, 200, 0.6))
+      drop-shadow(0 0 8px rgba(150, 50, 200, 0.4))
+      drop-shadow(0 0 12px rgba(150, 50, 200, 0.2));
+    opacity: 0.9;
+  }
+}
