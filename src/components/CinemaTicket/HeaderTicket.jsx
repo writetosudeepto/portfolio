@@ -7,7 +7,9 @@ import { motion } from 'framer-motion';
 const TicketCard = styled(motion(Card))(({ theme }) => ({
   position: 'relative',
   width: '100%',
-  maxWidth: 450,
+  maxWidth: 910, // 650 * 1.4 (40% wider)
+  minHeight: 162, // 180 * 0.9 (10% less height)
+  maxHeight: 198, // 220 * 0.9 (10% less height)
   background: 'rgba(255, 255, 255, 0.05)',
   backdropFilter: 'blur(20px)',
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
@@ -26,11 +28,25 @@ const TicketCard = styled(motion(Card))(({ theme }) => ({
     backdropFilter: 'blur(25px)',
   },
   
+  // Specific styling for small laptops (13-15 inch)
+  '@media screen and (min-width: 769px) and (max-width: 1366px)': {
+    maxWidth: 980, // 700 * 1.4 (40% wider)
+    minHeight: 180, // 200 * 0.9 (10% less height)
+    maxHeight: 216, // 240 * 0.9 (10% less height)
+  },
+  
+  // Larger laptops and desktops
+  '@media screen and (min-width: 1367px) and (max-width: 1440px)': {
+    maxWidth: 910, // 650 * 1.4 (40% wider)
+    minHeight: 180, // 200 * 0.9 (10% less height)
+    maxHeight: 216, // 240 * 0.9 (10% less height)
+  },
+  
   '@media screen and (max-width: 768px)': {
     maxWidth: '100%',
     margin: '0 auto',
-    minHeight: '160px',
-    maxHeight: '180px',
+    minHeight: '144px', // 160 * 0.9 (10% less height)
+    maxHeight: '162px', // 180 * 0.9 (10% less height)
   },
 }));
 

@@ -30,7 +30,7 @@ const About = () => {
             key={about.title + index}
           >
             <img src={urlFor(about.imgUrl)} alt={about.title} />
-            <h2 className="bold-text" style={{ marginTop: 20 }}>
+https://claude.ai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A45454%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference&code_challenge=NwfBBaBi5RqL2y3JwwdGt6L9jEqg-Zgm_PyqtnK5oNk&code_challenge_method=S256&state=MfCJjIkBRuRHEDMV0xW2-cT-gGZ0vBHANZoS9unAaTk            <h2 className="bold-text" style={{ marginTop: 20 }}>
               {about.title}
             </h2>
             <p className="p-text" style={{ marginTop: 10 }}>
