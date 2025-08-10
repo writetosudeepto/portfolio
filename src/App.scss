@@ -160,21 +160,30 @@
   padding: 1rem;
 
   .app__navigation-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #cbcbcb;
+    width: 12px;
+    height: 12px;
+    border-radius: 0;
+    background-color: #6b6b6b;
+    border: 2px solid #000000;
     margin: 0.5rem;
+    image-rendering: pixelated;
 
-    transition: background-color 0.2s ease-in-out;
+    transition: none;
+    box-shadow: 
+      inset -2px -2px 0px rgba(0, 0, 0, 0.3),
+      inset 2px 2px 0px rgba(255, 255, 255, 0.3);
 
     &:hover {
-      background-color: var(--secondary-color);
+      background-color: #8f8f8f;
+      box-shadow: 
+        inset -2px -2px 0px rgba(0, 0, 0, 0.5),
+        inset 2px 2px 0px rgba(255, 255, 255, 0.5);
     }
 
     @media screen and (min-width: 2000px) {
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
+      border: 4px solid #000000;
     }
   }
 }
@@ -203,6 +212,37 @@
   }
 }
 
+// Dark mode navigation dots
+[data-theme="dark"] {
+  .app__navigation-dot {
+    background-color: #404040;
+    border: 2px solid #000000;
+    
+    &:hover {
+      background-color: #6b6b6b;
+      box-shadow: 
+        inset -2px -2px 0px rgba(0, 0, 0, 0.5),
+        inset 2px 2px 0px rgba(255, 255, 255, 0.3);
+    }
+    
+    &.active {
+      background-color: #00c851 !important;
+      border: 2px solid #000000 !important;
+      box-shadow: 
+        inset -2px -2px 0px rgba(0, 0, 0, 0.3),
+        inset 2px 2px 0px rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    @media screen and (min-width: 2000px) {
+      border: 4px solid #000000;
+      
+      &.active {
+        border: 4px solid #000000 !important;
+      }
+    }
+  }
+}
+
 .app__rights-logo {
   display: flex;
   justify-content: flex-end;
@@ -212,188 +252,12 @@
   }
 }
 
-// Dark mode styling with laser surveillance effect
+// Dark mode styling with space theme
 [data-theme="dark"] {
   .app {
-    background-color: #000000;
+    background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 100%);
     position: relative;
     overflow: hidden;
-    
-    &::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: 
-        linear-gradient(15deg, transparent 49.8%, #00ff00 49.9%, #00ff00 50.1%, transparent 50.2%),
-        linear-gradient(75deg, transparent 49.8%, rgba(0, 255, 0, 0.8) 49.9%, rgba(0, 255, 0, 0.8) 50.1%, transparent 50.2%),
-        linear-gradient(135deg, transparent 49.8%, rgba(0, 255, 0, 0.6) 49.9%, rgba(0, 255, 0, 0.6) 50.1%, transparent 50.2%),
-        linear-gradient(-45deg, transparent 49.8%, rgba(0, 255, 0, 0.4) 49.9%, rgba(0, 255, 0, 0.4) 50.1%, transparent 50.2%);
-      background-size: 300px 400px, 250px 350px, 400px 300px, 200px 500px;
-      animation: wildLaserSweep 3s linear infinite,
-                 laserChaos 2s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 0;
-      opacity: 1;
-      filter: drop-shadow(0 0 2px #00ff00);
-    }
-    
-    &::after {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: 
-        linear-gradient(105deg, transparent 49.8%, rgba(0, 255, 0, 0.7) 49.9%, rgba(0, 255, 0, 0.7) 50.1%, transparent 50.2%),
-        linear-gradient(-30deg, transparent 49.8%, rgba(0, 255, 0, 0.5) 49.9%, rgba(0, 255, 0, 0.5) 50.1%, transparent 50.2%),
-        linear-gradient(60deg, transparent 49.8%, rgba(0, 255, 0, 0.3) 49.9%, rgba(0, 255, 0, 0.3) 50.1%, transparent 50.2%),
-        linear-gradient(-120deg, transparent 49.8%, rgba(0, 255, 0, 0.6) 49.9%, rgba(0, 255, 0, 0.6) 50.1%, transparent 50.2%);
-      background-size: 180px 280px, 320px 200px, 150px 400px, 280px 180px;
-      animation: wildLaserStorm 2.5s linear infinite reverse,
-                 crazyRotation 1.8s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 0;
-      opacity: 1;
-      filter: drop-shadow(0 0 2px #00ff00);
-    }
   }
 }
 
-@keyframes wildLaserSweep {
-  0% { 
-    transform: translateX(-200%) translateY(-100%) rotate(0deg) scale(0.5);
-    opacity: 1;
-  }
-  15% { 
-    transform: translateX(150%) translateY(50%) rotate(45deg) scale(1.5);
-    opacity: 0.8;
-  }
-  30% { 
-    transform: translateX(-50%) translateY(200%) rotate(-30deg) scale(0.8);
-    opacity: 1;
-  }
-  45% { 
-    transform: translateX(250%) translateY(-50%) rotate(90deg) scale(1.2);
-    opacity: 0.6;
-  }
-  60% { 
-    transform: translateX(-150%) translateY(150%) rotate(-60deg) scale(0.7);
-    opacity: 1;
-  }
-  75% { 
-    transform: translateX(100%) translateY(-200%) rotate(120deg) scale(1.8);
-    opacity: 0.4;
-  }
-  90% { 
-    transform: translateX(-300%) translateY(75%) rotate(-90deg) scale(0.6);
-    opacity: 0.9;
-  }
-  100% { 
-    transform: translateX(-200%) translateY(-100%) rotate(180deg) scale(0.5);
-    opacity: 1;
-  }
-}
-
-@keyframes wildLaserStorm {
-  0% { 
-    transform: translateY(200%) translateX(-150%) rotate(0deg);
-    opacity: 0.8;
-  }
-  12% { 
-    transform: translateY(-100%) translateX(300%) rotate(60deg);
-    opacity: 1;
-  }
-  25% { 
-    transform: translateY(150%) translateX(-200%) rotate(-45deg);
-    opacity: 0.6;
-  }
-  38% { 
-    transform: translateY(-250%) translateX(100%) rotate(120deg);
-    opacity: 0.9;
-  }
-  50% { 
-    transform: translateY(75%) translateX(-300%) rotate(-90deg);
-    opacity: 1;
-  }
-  62% { 
-    transform: translateY(-50%) translateX(250%) rotate(30deg);
-    opacity: 0.7;
-  }
-  75% { 
-    transform: translateY(300%) translateX(-100%) rotate(-120deg);
-    opacity: 0.8;
-  }
-  88% { 
-    transform: translateY(-200%) translateX(150%) rotate(90deg);
-    opacity: 1;
-  }
-  100% { 
-    transform: translateY(200%) translateX(-150%) rotate(180deg);
-    opacity: 0.8;
-  }
-}
-
-@keyframes laserChaos {
-  0%, 100% { 
-    filter: brightness(1.5) hue-rotate(0deg);
-    opacity: 1;
-  }
-  10% { 
-    filter: brightness(2.5) hue-rotate(30deg);
-    opacity: 0.3;
-  }
-  20% { 
-    filter: brightness(0.8) hue-rotate(-15deg);
-    opacity: 1;
-  }
-  30% { 
-    filter: brightness(3) hue-rotate(45deg);
-    opacity: 0.6;
-  }
-  40% { 
-    filter: brightness(1.2) hue-rotate(-30deg);
-    opacity: 1;
-  }
-  50% { 
-    filter: brightness(2.2) hue-rotate(60deg);
-    opacity: 0.4;
-  }
-  60% { 
-    filter: brightness(1.8) hue-rotate(-45deg);
-    opacity: 0.9;
-  }
-  70% { 
-    filter: brightness(2.8) hue-rotate(75deg);
-    opacity: 0.2;
-  }
-  80% { 
-    filter: brightness(1.1) hue-rotate(-60deg);
-    opacity: 1;
-  }
-  90% { 
-    filter: brightness(2.5) hue-rotate(90deg);
-    opacity: 0.5;
-  }
-}
-
-@keyframes crazyRotation {
-  0% { 
-    transform: rotate(0deg) scale(1) translateX(0%);
-  }
-  25% { 
-    transform: rotate(90deg) scale(1.3) translateX(50%);
-  }
-  50% { 
-    transform: rotate(180deg) scale(0.7) translateX(-30%);
-  }
-  75% { 
-    transform: rotate(270deg) scale(1.5) translateX(80%);
-  }
-  100% { 
-    transform: rotate(360deg) scale(1) translateX(0%);
-  }
-}

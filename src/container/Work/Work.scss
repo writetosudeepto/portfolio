@@ -111,33 +111,31 @@
   display: flex;
   flex-direction: column;
   
-  background: rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-radius: 0.5rem;
+  background: #c6c6c6 !important;
+  border: 4px solid #000000 !important;
+  border-radius: 0;
   padding: 1rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 
-              0 4px 16px rgba(0, 0, 0, 0.1),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  transition: all 0.3s ease;
+  box-shadow: 
+    inset -4px -4px 0px rgba(0, 0, 0, 0.3),
+    inset 4px 4px 0px rgba(255, 255, 255, 0.3),
+    4px 4px 0px #000000;
+  transition: none;
+  image-rendering: pixelated;
   
   cursor: pointer;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25),
-                0 8px 24px rgba(0, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
-    transform: translateY(-8px) scale(1.02);
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    backdrop-filter: blur(25px) !important;
-    -webkit-backdrop-filter: blur(25px) !important;
+    background: #d9d9d9 !important;
+    transform: translate(2px, 2px);
+    box-shadow: 
+      inset -4px -4px 0px rgba(0, 0, 0, 0.5),
+      inset 4px 4px 0px rgba(255, 255, 255, 0.5),
+      2px 2px 0px #000000;
   }
 
   @media screen and (min-width: 2000px) {
     padding: 1.25rem;
-    border-radius: 0.75rem;
+    border: 6px solid #000000;
   }
 }
 
@@ -179,7 +177,7 @@
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--secondary-color), #4c57d9);
+    background: linear-gradient(135deg, var(--secondary-color), #A91B47);
     color: #fff;
     border: 2px solid rgba(255, 255, 255, 0.3);
     
@@ -192,9 +190,9 @@
     
     &:hover {
       transform: scale(1.1);
-      background: linear-gradient(135deg, #4c57d9, var(--secondary-color));
+      background: linear-gradient(135deg, #A91B47, var(--secondary-color));
       border: 2px solid rgba(255, 255, 255, 0.6);
-      box-shadow: 0 6px 25px rgba(76, 87, 217, 0.4);
+      box-shadow: 0 6px 25px rgba(194, 24, 91, 0.3);
     }
     
     svg {
@@ -255,33 +253,34 @@
 // Dark mode specific styling
 [data-theme="dark"] {
   .app__work-item {
-    background: rgba(42, 42, 42, 0.08) !important;
-    border: 1px solid rgba(76, 87, 217, 0.3) !important;
-    box-shadow: 0 8px 32px rgba(0, 255, 0, 0.1),
-                0 4px 16px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(76, 87, 217, 0.1) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
+    background: #3a3a3a !important;
+    border: 4px solid #000000 !important;
+    box-shadow: 
+      inset -4px -4px 0px rgba(0, 0, 0, 0.5),
+      inset 4px 4px 0px rgba(255, 255, 255, 0.2),
+      4px 4px 0px #000000;
     
     &:hover {
-      background: rgba(42, 42, 42, 0.12) !important;
-      border: 1px solid rgba(76, 87, 217, 0.5) !important;
-      box-shadow: 0 12px 40px rgba(0, 255, 0, 0.2),
-                  0 8px 24px rgba(0, 0, 0, 0.3),
-                  inset 0 1px 0 rgba(76, 87, 217, 0.15) !important;
-      transform: translateY(-8px) scale(1.02);
-      backdrop-filter: blur(25px) !important;
-      -webkit-backdrop-filter: blur(25px) !important;
+      background: #4a4a4a !important;
+      transform: translate(2px, 2px);
+      box-shadow: 
+        inset -4px -4px 0px rgba(0, 0, 0, 0.7),
+        inset 4px 4px 0px rgba(255, 255, 255, 0.3),
+        2px 2px 0px #000000;
+    }
+    
+    @media screen and (min-width: 2000px) {
+      border: 6px solid #000000;
     }
   }
   
   .app__work-tag {
     background: rgba(42, 42, 42, 0.9);
-    border: 1px solid rgba(76, 87, 217, 0.4);
+    border: 1px solid rgba(0, 255, 65, 0.5);
     box-shadow: 0 4px 20px rgba(0, 255, 0, 0.2);
     
     p {
-      color: #4c57d9;
+      color: #00FF41;
     }
   }
   
@@ -289,14 +288,14 @@
     background: rgba(0, 0, 0, 0.8);
     
     div {
-      background: linear-gradient(135deg, #4c57d9, rgba(0, 255, 0, 0.8));
-      border: 2px solid rgba(0, 255, 0, 0.4);
-      box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+      background: linear-gradient(135deg, #00FF41, rgba(0, 255, 65, 0.8));
+      border: 2px solid rgba(0, 255, 65, 0.5);
+      box-shadow: 0 4px 20px rgba(0, 255, 65, 0.4);
       
       &:hover {
-        background: linear-gradient(135deg, rgba(0, 255, 0, 0.9), #4c57d9);
-        border: 2px solid rgba(0, 255, 0, 0.8);
-        box-shadow: 0 6px 25px rgba(0, 255, 0, 0.5);
+        background: linear-gradient(135deg, rgba(0, 255, 65, 0.9), #00FF41);
+        border: 2px solid rgba(0, 255, 65, 0.8);
+        box-shadow: 0 6px 25px rgba(0, 255, 65, 0.3);
         transform: scale(1.15);
       }
     }
@@ -304,19 +303,19 @@
   
   .app__work-filter-item {
     background: rgba(42, 42, 42, 0.8);
-    border: 1px solid rgba(76, 87, 217, 0.3);
+    border: 1px solid rgba(0, 255, 65, 0.4);
     color: #ffffff;
     
     &:hover {
-      background: rgba(76, 87, 217, 0.8);
-      border: 1px solid rgba(0, 255, 0, 0.4);
-      box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+      background: rgba(0, 255, 65, 0.8);
+      border: 1px solid rgba(0, 255, 65, 0.6);
+      box-shadow: 0 4px 15px rgba(0, 255, 65, 0.5);
     }
   }
   
   .item-active {
-    background: linear-gradient(135deg, #4c57d9, rgba(0, 255, 0, 0.3)) !important;
-    border: 1px solid rgba(0, 255, 0, 0.5) !important;
-    box-shadow: 0 4px 20px rgba(0, 255, 0, 0.4) !important;
+    background: linear-gradient(135deg, #00FF41, rgba(0, 255, 65, 0.4)) !important;
+    border: 1px solid rgba(0, 255, 65, 0.6) !important;
+    box-shadow: 0 4px 20px rgba(0, 255, 65, 0.5) !important;
   }
 }
