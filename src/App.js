@@ -1,12 +1,14 @@
 import React from 'react'
 import { About , Footer , Header, Skills, Testimonial, Work } from './container'
-import { Navbar, MeteorEffect } from './components'
+import { Navbar } from './components'
+import SpaceBackground from './components/SpaceBackground/SpaceBackground'
+import './components/SpaceBackground/SpaceBackground.scss'
 import './App.scss'
 
 const App = () => {
   return (
     <div className="app">
-      <MeteorEffect intensity="normal" />
+      <SpaceBackground />
       <Navbar />
       <Header />
       <About />

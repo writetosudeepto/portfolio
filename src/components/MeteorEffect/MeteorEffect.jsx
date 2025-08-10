@@ -337,7 +337,7 @@ const MeteorEffect = ({ intensity = 'normal' }) => {
         top: 0,
         left: 0,
         pointerEvents: 'none',
-        zIndex: 1,
+        zIndex: 2,
         opacity: 0.8,
       }}
     />

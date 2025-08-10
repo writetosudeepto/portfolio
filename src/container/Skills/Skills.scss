@@ -156,6 +156,28 @@
   }
 }
 
+// Dark mode improvements for text visibility
+[data-theme="dark"] {
+  .app__skills-item {
+    p {
+      color: #e0e0e0 !important; // Lighter text for better contrast
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+  }
+  
+  .app__skills-exp-work {
+    h4, p {
+      color: #e0e0e0 !important;
+    }
+  }
+  
+  .app__skills-exp-year {
+    p {
+      color: #d0d0d0 !important;
+    }
+  }
+}
+
 
 .example-container .example-no-radius {
   border-radius: 0;

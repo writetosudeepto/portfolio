@@ -1,0 +1,47 @@
+.space-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.space-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+}
+
+// Dark mode space background
+[data-theme="dark"] {
+  .space-background {
+    opacity: 1;
+  }
+}
+
+// Light mode - now fully visible since background image is removed
+[data-theme="light"] {
+  .space-background {
+    opacity: 1;
+  }
+}
+
+// Mobile optimization
+@media screen and (max-width: 768px) {
+  .space-background {
+    // Reduce complexity on mobile for performance
+    canvas {
+      image-rendering: pixelated;
+    }
+  }
+}
+
+// Performance optimization for smaller screens
+@media screen and (max-width: 480px) {
+  .space-background {
+    opacity: 0.7;
+  }
+}

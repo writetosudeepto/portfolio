@@ -1,9 +1,6 @@
 #home {
     position: relative;
-    background: url("../../assets/bgIMG.png");
-    background-size: cover;
-    background-position: center;
-    background-repeat: repeat;
+    // Removed background image to allow 3D space objects to be visible
   
     // disable the default padding styles
     .app__wrapper {
