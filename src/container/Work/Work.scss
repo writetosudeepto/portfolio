@@ -44,114 +44,64 @@
   }
   
   .app__work-portfolio {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 400px));
+    gap: 2.5rem;
     justify-content: center;
-    align-items: center;
+    align-items: start;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
   
-    .app__work-item {
-      width: 270px;
-      flex-direction: column;
-  
-      margin: 2rem;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      background-color: #fff;
-      color: #000;
-  
-      cursor: pointer;
-      transition: all 0.3s ease;
-  
-      &:hover {
-        box-shadow: 0 0 25px rgba(0, 0, 0, 0.2);
-      }
-  
-      @media screen and (min-width: 2000px) {
-        width: 470px;
-        padding: 1.25rem;
-        border-radius: 0.75rem;
-      }
-  
-      @media screen and (max-width: 300px) {
-        width: 100%;
-        margin: 1rem;
-      }
+  // Container responsive adjustments for different screen sizes
+  @media screen and (max-width: 768px) {
+    .app__work-portfolio {
+      grid-template-columns: 1fr;
+      max-width: 400px;
+      gap: 2rem;
+      padding: 0 1rem;
     }
   }
   
-  .app__work-img {
-    width: 100%;
-    height: 230px;
-  
-    position: relative;
-  
-    img {
-      width: 100%;
-      height: 100%;
-      border-radius: 0.5rem;
-      object-fit: cover;
-    }
-  
-    @media screen and (min-width: 2000px) {
-      height: 350px;
+  @media screen and (min-width: 768px) and (max-width: 1024px) {
+    .app__work-portfolio {
+      grid-template-columns: repeat(auto-fit, minmax(320px, 380px));
+      max-width: 1000px;
+      gap: 2rem;
     }
   }
   
-  .app__work-hover {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-  
-    border-radius: 0.5rem;
-    opacity: 0;
-    transition: all 0.3s ease;
-  
-    div {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background-color: rgba(0, 0, 0, 0.5);
-      color: #fff;
-  
-      margin: 1rem;
-      font-family: var(--font-base);
-      font-weight: 800;
-      cursor: pointer;
-      transition: all 0.3s ease;
-  
-      svg {
-        width: 50%;
-        height: 50%;
-        color: var(--white-color);
-      }
+  @media screen and (min-width: 1024px) and (max-width: 1440px) {
+    .app__work-portfolio {
+      grid-template-columns: repeat(auto-fit, minmax(340px, 390px));
+      max-width: 1300px;
+      gap: 2.5rem;
     }
   }
   
-  .app__work-content {
-    padding: 0.5rem;
-    width: 100%;
-    position: relative;
-    flex-direction: column;
-  
-    h4 {
-      margin-top: 1rem;
-      line-height: 1.5;
-  
-      @media screen and (min-width: 2000px) {
-        margin-top: 3rem;
-      }
+  @media screen and (min-width: 1440px) and (max-width: 1920px) {
+    .app__work-portfolio {
+      grid-template-columns: repeat(auto-fit, minmax(360px, 400px));
+      max-width: 1500px;
+      gap: 2.5rem;
     }
+  }
   
-    .app__work-tag {
-      position: absolute;
-      padding: 0.5rem 1rem;
-      border-radius: 10px;
-      background-color: #fff;
-      top: -25px;
+  // For ultra-wide screens (32-inch, 4K, etc.)
+  @media screen and (min-width: 1920px) {
+    .app__work-portfolio {
+      grid-template-columns: repeat(auto-fit, minmax(380px, 420px));
+      max-width: 1700px;
+      gap: 3rem;
+    }
+  }
+  
+  // For very large screens (8K, ultra-wide monitors)
+  @media screen and (min-width: 2560px) {
+    .app__work-portfolio {
+      grid-template-columns: repeat(auto-fit, minmax(400px, 450px));
+      max-width: 2000px;
+      gap: 3.5rem;
     }
   }

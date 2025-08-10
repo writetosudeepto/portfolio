@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { AppWrap } from "../../wrapper";
 import { images } from "../../constants";
+import HeaderTicket from "../../components/CinemaTicket/HeaderTicket";
 import "./Header.scss";
 
 const scaleVariants = {
@@ -22,20 +23,7 @@ const Header = () => (
       transition={{ duration: 0.5 }}
       className="app__header-info"
     >
-      <div className="app__header-badge">
-        <div className="badge-cmp app__flex">
-          <span>👁️</span>
-          <div style={{ marginLeft: 20 }}>
-            <p className="p-text">SYSTEM ONLINE. DEVELOPER UNIT:</p>
-            <h1 className="head-text">Sudipta Das</h1>
-          </div>
-        </div>
-
-        <div className="tag-cmp app__flex">
-          <p className="p-text">Full Stack Neural Networks | Data Science Protocol</p>
-          <p className="p-text">Resistance is futile. Your bugs will be terminated.</p>
-        </div>
-      </div>
+      <HeaderTicket />
     </motion.div>
 
     <motion.div
