@@ -1,35 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { BsPlayCircle, BsPauseCircle, BsMusicNote } from 'react-icons/bs';
 import { images } from '../../constants';
+import './DarkModeAudio.scss';
 
 const DarkModeAudio = () => {
   const audioRef = useRef(null);
-  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
-  const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Detect theme changes
   useEffect(() => {
     const checkTheme = () => {
       const theme = document.documentElement.getAttribute('data-theme');
       const newIsDarkMode = theme === 'dark';
-      
-      // Update dark mode state
       setIsDarkMode(newIsDarkMode);
       
-      if (newIsDarkMode && !hasStartedPlaying) {
-        // Start playing when entering dark mode for the first time (including on page load)
-        playAudio();
-        setHasStartedPlaying(true);
-      } else if (newIsDarkMode && hasStartedPlaying) {
-        // Resume if returning to dark mode
-        playAudio();
-      } else if (!newIsDarkMode) {
-        // Pause when leaving dark mode
-        pauseAudio();
+      // Pause music when switching to light mode
+      if (!newIsDarkMode && isPlaying) {
+        handlePause();
       }
     };
 
     // Check initial theme
-    checkTheme();
+    setTimeout(checkTheme, 100);
 
     // Listen for theme changes
     const observer = new MutationObserver(checkTheme);
@@ -39,63 +32,64 @@ const DarkModeAudio = () => {
     });
 
     return () => observer.disconnect();
-  }, [isDarkMode, hasStartedPlaying]);
+  }, [isPlaying]);
 
-  const playAudio = async () => {
+  const handlePlay = async () => {
     if (audioRef.current) {
       try {
-        audioRef.current.volume = 1.0; // Full volume
-        audioRef.current.loop = true;  // Loop the audio
+        audioRef.current.volume = 1.0;
+        audioRef.current.loop = true;
         await audioRef.current.play();
+        setIsPlaying(true);
       } catch (error) {
         console.log('Audio play failed:', error);
-        // Some browsers require user interaction before playing audio
-        // The audio will be ready to play when user interacts with the page
       }
     }
   };
 
-  const pauseAudio = () => {
+  const handlePause = () => {
     if (audioRef.current) {
       audioRef.current.pause();
+      setIsPlaying(false);
     }
   };
 
-  // Handle user interaction to enable audio (required by most browsers)
-  useEffect(() => {
-    const handleUserInteraction = () => {
-      if (isDarkMode && audioRef.current) {
-        if (audioRef.current.paused) {
-          playAudio();
-          if (!hasStartedPlaying) {
-            setHasStartedPlaying(true);
-          }
-        }
-      }
-    };
+  const togglePlayPause = () => {
+    if (isPlaying) {
+      handlePause();
+    } else {
+      handlePlay();
+    }
+  };
 
-    // Add event listeners for user interactions
-    const events = ['click', 'touchstart', 'keydown', 'mousemove'];
-    events.forEach(event => {
-      document.addEventListener(event, handleUserInteraction, { once: true });
-    });
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, handleUserInteraction);
-      });
-    };
-  }, [isDarkMode, hasStartedPlaying]);
 
   return (
-    <audio
-      ref={audioRef}
-      preload="auto"
-      style={{ display: 'none' }}
-    >
-      <source src={images.burzumAudio} type="audio/mpeg" />
-      Your browser does not support the audio element.
-    </audio>
+    <>
+      <audio
+        ref={audioRef}
+        preload="auto"
+        style={{ display: 'none' }}
+      >
+        <source src={images.burzumAudio} type="audio/mpeg" />
+        Your browser does not support the audio element.
+      </audio>
+      
+      {isDarkMode && (
+        <button 
+          className="music-button"
+          onClick={togglePlayPause}
+          aria-label={isPlaying ? 'Pause music' : 'Play music'}
+          title={isPlaying ? 'Pause background music' : 'Play background music'}
+        >
+          <BsMusicNote className="music-icon" />
+          {isPlaying ? (
+            <BsPauseCircle className="play-pause-icon" />
+          ) : (
+            <BsPlayCircle className="play-pause-icon" />
+          )}
+        </button>
+      )}
+    </>
   );
 };
 
