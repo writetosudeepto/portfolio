@@ -11,15 +11,17 @@ function SimpleSpaceship({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
 
   useFrame((state) => {
     if (groupRef.current) {
-      // Smooth continuous movement
+      // Move directly towards user (positive Z direction)
       groupRef.current.position.z += velocity[2];
-      groupRef.current.position.x += velocity[0] * 0.1;
-      groupRef.current.position.y += velocity[1] * 0.1;
+      
+      // Keep ships aligned - moving straight towards user
+      // groupRef.current.position.x += velocity[0] * 0.1;
+      // groupRef.current.position.y += velocity[1] * 0.1;
 
-      // Smooth flight dynamics
-      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5 + position[0] * 0.1) * 0.05;
-      groupRef.current.rotation.x = velocity[1] * 0.15 + Math.sin(state.clock.elapsedTime * 0.3) * 0.02;
-      groupRef.current.rotation.y = velocity[0] * 0.15 + Math.cos(state.clock.elapsedTime * 0.4) * 0.02;
+      // Keep spaceships pointing forward (towards user) - same angle for all
+      groupRef.current.rotation.x = 0;
+      groupRef.current.rotation.y = 0;
+      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.3 + position[0] * 0.1) * 0.02; // Very slight roll
 
       // Engine pulse effect
       if (engineRef.current) {
@@ -35,11 +37,6 @@ function SimpleSpaceship({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
         const newZ = -250 - Math.random() * 50;
         
         groupRef.current.position.set(newX, newY, newZ);
-        
-        // Reset with slight variation to prevent synchronization
-        velocity[0] = (Math.random() - 0.5) * 0.08;
-        velocity[1] = (Math.random() - 0.5) * 0.04;
-        velocity[2] = Math.random() * 0.8 + 0.8; // Always moving forward
       }
     }
   });
@@ -71,35 +68,35 @@ function SimpleSpaceship({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
   return (
     <group ref={groupRef} position={position}>
       {/* Main fuselage - sleek sci-fi design */}
-      <mesh rotation={[0, 0, Math.PI / 2]}>
+      <mesh rotation={[0, Math.PI / 2, 0]}>
         <capsuleGeometry args={[size * 0.4, size * 3.5, 4, 16]} />
         <meshBasicMaterial color={hullColor} />
       </mesh>
       
       {/* Nose cone - sharp and aerodynamic */}
-      <mesh position={[size * 2.2, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+      <mesh position={[0, 0, size * 2.2]} rotation={[Math.PI / 2, 0, 0]}>
         <coneGeometry args={[size * 0.35, size * 1.2, 8]} />
         <meshBasicMaterial color={accentColor} />
       </mesh>
       
       {/* Main wings - swept back design */}
-      <mesh position={[-size * 0.5, 0, 0]} rotation={[0, 0, Math.PI * 0.1]}>
-        <boxGeometry args={[size * 2, size * 0.12, size * 4]} />
+      <mesh position={[0, 0, -size * 0.5]} rotation={[Math.PI * 0.1, 0, 0]}>
+        <boxGeometry args={[size * 4, size * 0.12, size * 2]} />
         <meshBasicMaterial color={hullColor} />
       </mesh>
       
       {/* Wing tips with energy cores */}
-      <mesh position={[size * 0.8, 0, size * 1.8]}>
+      <mesh position={[size * 1.8, 0, size * 0.8]}>
         <sphereGeometry args={[size * 0.15, 8, 8]} />
         <meshBasicMaterial color={glowColor} />
       </mesh>
-      <mesh position={[size * 0.8, 0, -size * 1.8]}>
+      <mesh position={[-size * 1.8, 0, size * 0.8]}>
         <sphereGeometry args={[size * 0.15, 8, 8]} />
         <meshBasicMaterial color={glowColor} />
       </mesh>
       
       {/* Cockpit - glowing dome */}
-      <mesh ref={cockpitRef} position={[size * 1.2, size * 0.3, 0]}>
+      <mesh ref={cockpitRef} position={[0, size * 0.3, size * 1.2]}>
         <sphereGeometry args={[size * 0.4, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.6]} />
         <meshBasicMaterial 
           color={isDarkMode ? '#fbbf24' : '#f59e0b'}
@@ -109,24 +106,24 @@ function SimpleSpaceship({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
       </mesh>
       
       {/* Secondary hull details */}
-      <mesh position={[size * 0.3, size * 0.2, 0]}>
+      <mesh position={[0, size * 0.2, size * 0.3]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[size * 0.15, size * 0.15, size * 2, 8]} />
         <meshBasicMaterial color={accentColor} />
       </mesh>
       
       {/* Engine nacelles - twin thrusters */}
-      <mesh position={[-size * 2.2, 0, size * 0.6]}>
+      <mesh position={[size * 0.6, 0, -size * 2.2]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[size * 0.2, size * 0.15, size * 1.5, 8]} />
         <meshBasicMaterial color={hullColor} />
       </mesh>
-      <mesh position={[-size * 2.2, 0, -size * 0.6]}>
+      <mesh position={[-size * 0.6, 0, -size * 2.2]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[size * 0.2, size * 0.15, size * 1.5, 8]} />
         <meshBasicMaterial color={hullColor} />
       </mesh>
       
       {/* Engine exhausts - pulsing glow */}
-      <group ref={engineRef} position={[-size * 3.2, 0, 0]}>
-        <mesh position={[0, 0, size * 0.6]}>
+      <group ref={engineRef} position={[0, 0, -size * 3.2]}>
+        <mesh position={[size * 0.6, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[size * 0.25, size * 0.8, 8]} />
           <meshBasicMaterial 
             color="#00ffff" 
@@ -134,7 +131,7 @@ function SimpleSpaceship({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
             opacity={0.8}
           />
         </mesh>
-        <mesh position={[0, 0, -size * 0.6]}>
+        <mesh position={[-size * 0.6, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[size * 0.25, size * 0.8, 8]} />
           <meshBasicMaterial 
             color="#00ffff" 
@@ -145,31 +142,31 @@ function SimpleSpaceship({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
       </group>
       
       {/* Decorative fins */}
-      <mesh position={[-size * 1.5, size * 0.4, 0]} rotation={[Math.PI / 4, 0, 0]}>
-        <boxGeometry args={[size * 0.8, size * 0.05, size * 1.2]} />
+      <mesh position={[0, size * 0.4, -size * 1.5]} rotation={[0, Math.PI / 4, 0]}>
+        <boxGeometry args={[size * 1.2, size * 0.05, size * 0.8]} />
         <meshBasicMaterial color={accentColor} />
       </mesh>
-      <mesh position={[-size * 1.5, -size * 0.4, 0]} rotation={[-Math.PI / 4, 0, 0]}>
-        <boxGeometry args={[size * 0.8, size * 0.05, size * 1.2]} />
+      <mesh position={[0, -size * 0.4, -size * 1.5]} rotation={[0, -Math.PI / 4, 0]}>
+        <boxGeometry args={[size * 1.2, size * 0.05, size * 0.8]} />
         <meshBasicMaterial color={accentColor} />
       </mesh>
       
       {/* Navigation lights */}
-      <mesh position={[size * 2.8, 0, size * 0.3]}>
+      <mesh position={[size * 0.3, 0, size * 2.8]}>
         <sphereGeometry args={[size * 0.05, 6, 6]} />
         <meshBasicMaterial color="#ff0040" />
       </mesh>
-      <mesh position={[size * 2.8, 0, -size * 0.3]}>
+      <mesh position={[-size * 0.3, 0, size * 2.8]}>
         <sphereGeometry args={[size * 0.05, 6, 6]} />
         <meshBasicMaterial color="#00ff40" />
       </mesh>
       
       {/* Wing strobe lights */}
-      <mesh position={[size * 0.8, 0, size * 2.2]}>
+      <mesh position={[size * 2.2, 0, size * 0.8]}>
         <sphereGeometry args={[size * 0.03, 4, 4]} />
         <meshBasicMaterial color="#ffffff" />
       </mesh>
-      <mesh position={[size * 0.8, 0, -size * 2.2]}>
+      <mesh position={[-size * 2.2, 0, size * 0.8]}>
         <sphereGeometry args={[size * 0.03, 4, 4]} />
         <meshBasicMaterial color="#ffffff" />
       </mesh>
@@ -285,9 +282,9 @@ function SimpleSpaceScene() {
         -200 - i * 80 - Math.random() * 50 // Stagger initial positions
       ],
       velocity: [
-        (Math.random() - 0.5) * 0.08,
-        (Math.random() - 0.5) * 0.04,
-        0.8 + Math.random() * 0.6 // Consistent forward movement
+        0, // No X movement - straight towards user
+        0, // No Y movement - straight towards user  
+        1.2 // Same forward speed for all ships
       ],
       size: Math.random() * 0.4 + 0.8,
       type: i % 3 // Different ship types for variety
