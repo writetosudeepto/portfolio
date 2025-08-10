@@ -11,31 +11,35 @@ function SimpleSpaceship({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
 
   useFrame((state) => {
     if (groupRef.current) {
-      // Movement
+      // Smooth continuous movement
       groupRef.current.position.z += velocity[2];
       groupRef.current.position.x += velocity[0] * 0.1;
       groupRef.current.position.y += velocity[1] * 0.1;
 
-      // Dynamic flight rotation
-      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
-      groupRef.current.rotation.x = velocity[1] * 0.1;
-      groupRef.current.rotation.y = velocity[0] * 0.1;
+      // Smooth flight dynamics
+      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5 + position[0] * 0.1) * 0.05;
+      groupRef.current.rotation.x = velocity[1] * 0.15 + Math.sin(state.clock.elapsedTime * 0.3) * 0.02;
+      groupRef.current.rotation.y = velocity[0] * 0.15 + Math.cos(state.clock.elapsedTime * 0.4) * 0.02;
 
       // Engine pulse effect
       if (engineRef.current) {
-        const pulse = Math.sin(state.clock.elapsedTime * 8) * 0.3 + 0.7;
+        const pulse = Math.sin(state.clock.elapsedTime * 8 + position[1] * 0.2) * 0.3 + 0.7;
         engineRef.current.scale.setScalar(pulse);
       }
 
-      // Cockpit glow - removed to prevent uniform errors
-
-      // Reset position when out of view
-      if (groupRef.current.position.z > 50 || groupRef.current.position.z < -200) {
-        groupRef.current.position.set(
-          (Math.random() - 0.5) * 150,
-          (Math.random() - 0.5) * 80,
-          -200 - Math.random() * 100
-        );
+      // Smooth respawn when out of view - always from behind camera
+      if (groupRef.current.position.z > 60) {
+        // Respawn far behind with smooth entry
+        const newX = (Math.random() - 0.5) * 120;
+        const newY = (Math.random() - 0.5) * 60;
+        const newZ = -250 - Math.random() * 50;
+        
+        groupRef.current.position.set(newX, newY, newZ);
+        
+        // Reset with slight variation to prevent synchronization
+        velocity[0] = (Math.random() - 0.5) * 0.08;
+        velocity[1] = (Math.random() - 0.5) * 0.04;
+        velocity[2] = Math.random() * 0.8 + 0.8; // Always moving forward
       }
     }
   });
@@ -177,23 +181,29 @@ function SimpleSpaceship({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
 function SimpleAsteroid({ position = [0, 0, 0], velocity = [0, -0.2, 0], size = 0.5 }) {
   const asteroidRef = useRef();
 
-  useFrame(() => {
+  useFrame((state) => {
     if (asteroidRef.current) {
+      // Smooth movement
       asteroidRef.current.position.x += velocity[0];
       asteroidRef.current.position.y += velocity[1];
       asteroidRef.current.position.z += velocity[2];
 
-      // Rotation
-      asteroidRef.current.rotation.x += 0.01;
-      asteroidRef.current.rotation.y += 0.015;
+      // Varied rotation speeds for each asteroid
+      asteroidRef.current.rotation.x += 0.008 + Math.sin(state.clock.elapsedTime * 0.1) * 0.002;
+      asteroidRef.current.rotation.y += 0.012 + Math.cos(state.clock.elapsedTime * 0.15) * 0.003;
+      asteroidRef.current.rotation.z += 0.005;
 
-      // Reset when out of view
-      if (asteroidRef.current.position.y < -60) {
+      // Smooth respawn from top when out of view
+      if (asteroidRef.current.position.y < -70) {
         asteroidRef.current.position.set(
-          (Math.random() - 0.5) * 100,
-          Math.random() * 20 + 50,
-          (Math.random() - 0.5) * 80
+          (Math.random() - 0.5) * 120,
+          60 + Math.random() * 20,
+          (Math.random() - 0.5) * 100
         );
+        // Randomize velocity slightly to prevent synchronization
+        velocity[0] = (Math.random() - 0.5) * 0.06;
+        velocity[1] = -(Math.random() * 0.08 + 0.12);
+        velocity[2] = (Math.random() - 0.5) * 0.04;
       }
     }
   });
@@ -270,16 +280,16 @@ function SimpleSpaceScene() {
     return Array.from({ length: 4 }, (_, i) => ({
       id: i,
       position: [
-        (Math.random() - 0.5) * 150,
-        (Math.random() - 0.5) * 80,
-        -150 - Math.random() * 100
+        (Math.random() - 0.5) * 100,
+        (Math.random() - 0.5) * 50,
+        -200 - i * 80 - Math.random() * 50 // Stagger initial positions
       ],
       velocity: [
-        (Math.random() - 0.5) * 0.12,
-        (Math.random() - 0.5) * 0.06,
-        Math.random() * 1.2 + 0.6
+        (Math.random() - 0.5) * 0.08,
+        (Math.random() - 0.5) * 0.04,
+        0.8 + Math.random() * 0.6 // Consistent forward movement
       ],
-      size: Math.random() * 0.6 + 0.7,
+      size: Math.random() * 0.4 + 0.8,
       type: i % 3 // Different ship types for variety
     }));
   }, []);
@@ -288,16 +298,16 @@ function SimpleSpaceScene() {
     return Array.from({ length: 6 }, (_, i) => ({
       id: i,
       position: [
-        (Math.random() - 0.5) * 100,
-        Math.random() * 30 + 40,
-        (Math.random() - 0.5) * 80
+        (Math.random() - 0.5) * 120,
+        50 + i * 12 + Math.random() * 8, // Stagger vertically
+        (Math.random() - 0.5) * 100
       ],
       velocity: [
-        (Math.random() - 0.5) * 0.05,
-        -(Math.random() * 0.1 + 0.1),
-        (Math.random() - 0.5) * 0.03
+        (Math.random() - 0.5) * 0.04,
+        -(Math.random() * 0.06 + 0.12), // Consistent downward movement
+        (Math.random() - 0.5) * 0.02
       ],
-      size: Math.random() * 0.4 + 0.2
+      size: Math.random() * 0.3 + 0.3
     }));
   }, []);
 
