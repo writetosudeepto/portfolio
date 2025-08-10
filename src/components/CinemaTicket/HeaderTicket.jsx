@@ -28,7 +28,7 @@ const TicketCard = styled(motion(Card))(({ theme }) => ({
   
   '@media screen and (max-width: 768px)': {
     maxWidth: '100%',
-    margin: '0 1rem',
+    margin: '0 auto',
   },
 }));
 

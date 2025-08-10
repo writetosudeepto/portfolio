@@ -50,6 +50,13 @@
       width: 100%;
       margin-right: 0rem;
     }
+    
+    @media screen and (max-width: 768px) {
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 0 1rem;
+    }
   }
   
   .app__header-badge {
