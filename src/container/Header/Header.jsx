@@ -24,12 +24,12 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
   const [collisionEffects, setCollisionEffects] = useState([]);
   const [hoveredPlanet, setHoveredPlanet] = useState(null);
   
-  // Define skills with their properties - appropriately sized for visibility
+  // Define skills with their properties - mobile-optimized sizes
   const getMobileSize = (size) => {
     if (window.innerWidth <= 450) {
-      return Math.round(size * 0.36); // 40% smaller than previous 0.6
+      return Math.round(size * 0.25); // Much smaller for mobile
     } else if (window.innerWidth <= 768) {
-      return Math.round(size * 0.42); // 40% smaller than previous 0.7
+      return Math.round(size * 0.3); // Smaller for mobile
     } else if (window.innerWidth <= 1200) {
       return Math.round(size * 0.8); // Keep tablets the same
     }
@@ -259,15 +259,20 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
             { x: windowWidth * 0.5, y: windowHeight * 0.2 },   // Top center
           ];
         } else if (isMobile) {
-          // Mobile: Multiple safe centers with much more conservative positioning
+          // Mobile: Spread planets widely across entire screen
           candidates = [
-            { x: windowWidth * 0.3, y: windowHeight * 0.35 },  // Top left safe zone
-            { x: windowWidth * 0.7, y: windowHeight * 0.35 },  // Top right safe zone
-            { x: windowWidth * 0.25, y: windowHeight * 0.55 }, // Middle left safe zone
-            { x: windowWidth * 0.75, y: windowHeight * 0.55 }, // Middle right safe zone
-            { x: windowWidth * 0.5, y: windowHeight * 0.25 },  // Top center safe zone
-            { x: windowWidth * 0.5, y: windowHeight * 0.65 },  // Bottom center safe zone
-            { x: windowWidth * 0.4, y: windowHeight * 0.45 },  // Center left
+            { x: windowWidth * 0.15, y: windowHeight * 0.2 },  // Top left corner
+            { x: windowWidth * 0.85, y: windowHeight * 0.2 },  // Top right corner
+            { x: windowWidth * 0.1, y: windowHeight * 0.5 },   // Middle left edge
+            { x: windowWidth * 0.9, y: windowHeight * 0.5 },   // Middle right edge
+            { x: windowWidth * 0.2, y: windowHeight * 0.8 },   // Bottom left
+            { x: windowWidth * 0.8, y: windowHeight * 0.8 },   // Bottom right
+            { x: windowWidth * 0.5, y: windowHeight * 0.15 },  // Top center edge
+            { x: windowWidth * 0.5, y: windowHeight * 0.85 },  // Bottom center edge
+            { x: windowWidth * 0.25, y: windowHeight * 0.35 }, // Mid-left upper
+            { x: windowWidth * 0.75, y: windowHeight * 0.35 }, // Mid-right upper
+            { x: windowWidth * 0.3, y: windowHeight * 0.65 },  // Mid-left lower
+            { x: windowWidth * 0.7, y: windowHeight * 0.65 },  // Mid-right lower
           ];
         } else {
           // Tablet view
@@ -305,17 +310,17 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
       const calculateSafeRadius = (centerX, centerY, planetSize, windowWidth, windowHeight) => {
         // Calculate maximum safe radius to keep planet within screen bounds
         const isMobile = windowWidth <= 768;
-        const marginFromEdge = planetSize + (isMobile ? 40 : 25); // Appropriate margin for larger planets
+        const marginFromEdge = planetSize + (isMobile ? 30 : 25); // Reduced mobile margin for wider movement
         const maxRadiusX = Math.min(centerX - marginFromEdge, windowWidth - centerX - marginFromEdge);
         const maxRadiusY = Math.min(centerY - marginFromEdge, windowHeight - centerY - marginFromEdge);
         const maxSafeRadius = Math.min(maxRadiusX, maxRadiusY);
         
         // Mobile-specific radius calculations
         if (isMobile) {
-          // Conservative radii for mobile to keep smaller planets on screen
-          const minRadius = Math.min(windowWidth, windowHeight) * 0.06; // Reduced for smaller planets
-          const baseRadius = Math.max(minRadius, maxSafeRadius * 0.3); // More conservative
-          const maxRadius = Math.max(minRadius * 1.3, maxSafeRadius * 0.55); // Tighter bounds
+          // Larger radii for mobile to allow widespread movement across screen
+          const minRadius = Math.min(windowWidth, windowHeight) * 0.08; // Larger base for movement
+          const baseRadius = Math.max(minRadius, maxSafeRadius * 0.4); // Allow more movement
+          const maxRadius = Math.max(minRadius * 1.8, maxSafeRadius * 0.7); // Much wider orbits
           return { baseRadius, maxRadius, maxSafeRadius };
         } else {
           // Desktop calculations with slightly adjusted ratios
@@ -344,7 +349,7 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
         // Mobile-specific eccentricity constraints
         const isMobile = windowWidth <= 768;
         const eccentricity = isMobile 
-          ? 0.1 + (Math.random() * 0.2)  // Moderate eccentricity for mobile
+          ? 0.2 + (Math.random() * 0.3)  // Higher eccentricity for wider mobile orbits
           : 0.15 + (Math.random() * 0.25); // Good eccentricity for desktop
         const semiMinorAxis = semiMajorAxis * Math.sqrt(1 - eccentricity * eccentricity);
         
@@ -463,8 +468,8 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
           const windowHeight = circle.windowHeight || window.innerHeight;
           const isMobile = windowWidth <= 768;
           
-          // Increase margin for mobile devices to ensure smaller planets stay visible
-          const margin = isMobile ? 35 : 10; // Even larger margin for mobile
+          // Balanced margin for mobile to allow wider movement while staying visible
+          const margin = isMobile ? 30 : 10; // Reduced margin for wider mobile movement
           
           // Clamp position to screen boundaries
           newX = Math.max(halfSize + margin, Math.min(windowWidth - halfSize - margin, newX));
@@ -534,6 +539,19 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
         const skillData = skillsData[circle.id];
         const isHovered = hoveredPlanet === circle.id;
         const isSelected = selectedPlanet && selectedPlanet.circle.id === circle.id;
+        const isMobile = window.innerWidth <= 768;
+        
+        // Calculate depth effect based on distance from center
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const distanceFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+        const maxDistance = Math.sqrt(centerX ** 2 + centerY ** 2);
+        const depthRatio = distanceFromCenter / maxDistance; // 0 = center, 1 = edge
+        
+        // Depth effects
+        const depthScale = 1 - (depthRatio * 0.2); // Closer planets appear larger
+        const depthOpacity = 1 - (depthRatio * 0.3); // Closer planets appear more opaque
+        const depthBlur = depthRatio * 1; // Distant planets appear slightly blurred
         
         return (
           <motion.div
@@ -546,30 +564,61 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
               height: circle.size,
               transform: `
                 scale(${
-                  isHovered ? 1.2 : 
-                  isSelected ? 1.15 : 
-                  circle.collisionEffect > 0 ? 1 + circle.collisionEffect * 0.02 : 1
+                  (isHovered ? 1.3 : 
+                  isSelected ? 1.2 : 
+                  circle.collisionEffect > 0 ? 1 + circle.collisionEffect * 0.02 : 1) * depthScale
                 })
                 rotate(${circle.rotationAngle || 0}rad)
               `,
+              opacity: depthOpacity,
+              filter: `blur(${depthBlur}px)`,
               boxShadow: isHovered || isSelected
-                ? `0 0 30px ${circle.color}, 0 0 60px ${circle.color}60, 0 0 20px ${circle.color}40`
+                ? `0 0 ${30 * depthScale}px ${circle.color}, 0 0 ${60 * depthScale}px ${circle.color}60, 0 0 ${20 * depthScale}px ${circle.color}40`
                 : circle.collisionEffect > 0 
-                  ? `0 0 ${circle.collisionEffect * 3}px ${circle.color}, 0 0 ${circle.collisionEffect * 6}px ${circle.color}60, 0 0 ${circle.collisionEffect * 2}px ${circle.color}20`
-                  : `0 0 ${8 + (circle.mass || 1) * 4}px rgba(0, 0, 0, 0.15), 0 0 ${4 + (circle.mass || 1) * 2}px ${circle.color}30`,
+                  ? `0 0 ${circle.collisionEffect * 3 * depthScale}px ${circle.color}, 0 0 ${circle.collisionEffect * 6 * depthScale}px ${circle.color}60, 0 0 ${circle.collisionEffect * 2 * depthScale}px ${circle.color}20`
+                  : `0 0 ${(8 + (circle.mass || 1) * 4) * depthScale}px rgba(0, 0, 0, 0.15), 0 0 ${(4 + (circle.mass || 1) * 2) * depthScale}px ${circle.color}30`,
               transition: 'all 0.3s ease',
               background: `radial-gradient(circle at 30% 30%, ${circle.color}${isHovered ? '40' : '20'}, ${circle.color}${isHovered ? '20' : '10'}, var(--white-color))`,
               border: `2px solid ${circle.color}${isHovered ? '80' : '40'}`,
               cursor: 'pointer',
-              zIndex: isHovered || isSelected ? 15 : 'auto',
+              zIndex: isMobile 
+                ? (isHovered || isSelected ? 25 : 20) // Force high z-index on mobile
+                : (isHovered || isSelected ? 20 : Math.round((1 - depthRatio) * 10) + 5), // Desktop depth-based z-index
+              // Ensure mobile clickability
+              touchAction: 'manipulation',
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+              pointerEvents: 'auto', // Force pointer events
             }}
             whileInView={{ scale: [0, 1], opacity: [0, 1] }}
             transition={{ duration: 0.8, delay: circle.id * 0.15 }}
-            onClick={() => handlePlanetClick(circle, skillData)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handlePlanetClick(circle, skillData);
+            }}
             onMouseEnter={() => handlePlanetHover(circle, skillData)}
             onMouseLeave={handlePlanetHoverLeave}
-            whileHover={{ scale: 1.2 }}
-            whileTap={{ scale: 1.1 }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handlePlanetHover(circle, skillData);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handlePlanetClick(circle, skillData);
+            }}
+            // Additional mobile support
+            onPointerDown={(e) => {
+              if (isMobile) {
+                e.preventDefault();
+                e.stopPropagation();
+                handlePlanetClick(circle, skillData);
+              }
+            }}
+            whileHover={{ scale: isMobile ? 1.2 : 1.3 }}
+            whileTap={{ scale: isMobile ? 1.1 : 1.2 }}
           >
             <img 
               src={circle.image} 

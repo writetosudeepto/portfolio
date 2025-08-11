@@ -65,6 +65,11 @@
     margin-top: 30px;
     position: relative;
     z-index: 5; // Above planets but below modals
+    
+    // On mobile, ensure badges don't block planets
+    @media screen and (max-width: 768px) {
+      z-index: 3; // Lower than planets on mobile
+    }
   
     .badge-cmp,
     .tag-cmp {
@@ -360,7 +365,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 1; // Behind profile image and content
+    z-index: 6; // Above profile image on mobile for clickability
     pointer-events: none; // Allow clicking through to content below
     overflow: hidden;
     
@@ -368,6 +373,11 @@
     .planet-modal-overlay {
       pointer-events: auto;
       z-index: 10000;
+    }
+
+    // On mobile, ensure planets are always clickable
+    @media screen and (max-width: 768px) {
+      z-index: 15; // High z-index on mobile to ensure clickability
     }
   }
 
@@ -443,11 +453,36 @@
       transition: all 0.3s ease;
     }
 
-    // Smaller sizes on mobile to prevent cutoff
-    @media screen and (max-width: 450px) {
+    // Mobile optimizations
+    @media screen and (max-width: 768px) {
+      // Ensure proper touch targets on mobile
+      min-width: 30px;
+      min-height: 30px;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      
+      // Prevent text selection on touch
+      -webkit-tap-highlight-color: transparent;
+      
+      // Ensure visibility with better contrast
+      border-width: 1px;
+      
+      // Force high z-index on mobile for clickability
+      z-index: 20 !important;
+      pointer-events: auto !important;
+      
+      // Add a visible background for better touch feedback
+      &::before {
+        opacity: 0.6;
+        background: radial-gradient(circle, transparent 40%, rgba(255,255,255,0.1) 70%);
+      }
+      
       img {
         width: 60%;
         height: 60%;
+        pointer-events: none; // Ensure touch goes to parent
       }
     }
   }
@@ -505,6 +540,11 @@
       object-fit: contain;
       z-index: 5; // Above planets but below modals
       position: relative;
+      
+      // On mobile, ensure profile image doesn't block planets
+      @media screen and (max-width: 768px) {
+        z-index: 3; // Lower than planets on mobile
+      }
     }
   
     .overlay_circle {
