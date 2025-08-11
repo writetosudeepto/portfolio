@@ -3380,6 +3380,341 @@ function FlyingAstronaut({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
   );
 }
 
+// Sun component for light mode
+function Sun({ isDarkMode }) {
+  const sunRef = useRef();
+  const glowRef = useRef();
+  const electricityRefs = useRef([]);
+  const lightningStrikesRefs = useRef([]);
+  const [isMobile, setIsMobile] = useState(false);
+  const [lightningStrikes, setLightningStrikes] = useState([]);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Cross-hatching texture creation - move before conditional return
+  const createCrossHatchTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    // Base color
+    ctx.fillStyle = '#FFD700';
+    ctx.fillRect(0, 0, 512, 512);
+    
+    // Cross-hatching lines
+    ctx.strokeStyle = '#FFA500';
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.6;
+    
+    // Diagonal lines one direction
+    for (let i = 0; i < 512; i += 20) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + 512, 512);
+      ctx.stroke();
+    }
+    
+    // Diagonal lines other direction
+    for (let i = 0; i < 512; i += 20) {
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(512, i + 512);
+      ctx.stroke();
+    }
+    
+    // Additional vertical lines for more texture
+    ctx.strokeStyle = '#FF8C00';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.4;
+    for (let i = 0; i < 512; i += 15) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, 512);
+      ctx.stroke();
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(2, 2);
+    return texture;
+  }, []);
+  
+  useFrame((state) => {
+    if (sunRef.current) {
+      // Faster angry rotation
+      sunRef.current.rotation.z += 0.03;
+      
+      // Angry aggressive pulsing
+      const pulse = Math.sin(state.clock.elapsedTime * 2.5) * 0.2 + 1;
+      sunRef.current.scale.setScalar(pulse);
+    }
+    
+    if (glowRef.current) {
+      // Intense red glow pulsing
+      const glowPulse = Math.sin(state.clock.elapsedTime * 3) * 0.4 + 1;
+      glowRef.current.scale.setScalar(glowPulse);
+    }
+    
+    // Animate electric sparkles
+    electricityRefs.current.forEach((ref, i) => {
+      if (ref) {
+        // Random electric flickering
+        const flickerSpeed = 15 + i * 2;
+        const flicker = Math.sin(state.clock.elapsedTime * flickerSpeed + i) * 0.5 + 0.5;
+        ref.material.opacity = flicker * 0.8 + 0.2;
+        
+        // Random position changes for electric effect
+        if (Math.random() < 0.1) {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = Math.random() * 8;
+          ref.position.x = Math.cos(angle) * distance * scale;
+          ref.position.y = Math.sin(angle) * distance * scale;
+        }
+      }
+    });
+
+    // Generate random lightning strikes
+    if (Math.random() < 0.02) { // 2% chance per frame for lightning strike
+      const colors = [
+        { main: '#FF3333', glow: '#FF6666' }, // Red
+        { main: '#3333FF', glow: '#6666FF' }, // Blue  
+        { main: '#FFFF33', glow: '#FFFF88' }, // Yellow
+        { main: '#AA33FF', glow: '#CC66FF' }  // Purple
+      ];
+      const colorScheme = colors[Math.floor(Math.random() * colors.length)];
+      
+      const newStrike = {
+        id: Math.random(),
+        startTime: state.clock.elapsedTime,
+        duration: 0.3 + Math.random() * 0.2, // 0.3-0.5 seconds
+        type: Math.random() < 0.7 ? 'toSun' : 'fromSun', // 70% to sun, 30% from sun
+        startX: (Math.random() - 0.5) * 100,
+        startY: (Math.random() - 0.5) * 60,
+        startZ: -50 - Math.random() * 100,
+        endX: (Math.random() - 0.5) * 20 * scale,
+        endY: (Math.random() - 0.5) * 20 * scale,
+        endZ: 0,
+        segments: 3 + Math.floor(Math.random() * 4), // 3-6 segments
+        color: colorScheme.main,
+        glowColor: colorScheme.glow
+      };
+      
+      setLightningStrikes(prev => [...prev.slice(-5), newStrike]); // Keep max 6 strikes
+    }
+
+    // Clean up old lightning strikes
+    setLightningStrikes(prev => 
+      prev.filter(strike => 
+        (state.clock.elapsedTime - strike.startTime) < strike.duration
+      )
+    );
+
+    // Animate lightning strikes
+    lightningStrikesRefs.current.forEach((ref, i) => {
+      if (ref && lightningStrikes[i]) {
+        const strike = lightningStrikes[i];
+        const elapsed = state.clock.elapsedTime - strike.startTime;
+        const progress = elapsed / strike.duration;
+        
+        // Flickering intensity
+        const intensity = Math.sin(elapsed * 50) * 0.5 + 0.5;
+        ref.material.opacity = (1 - progress) * intensity * 0.9;
+      }
+    });
+  });
+
+  // Don't render sun in dark mode
+  if (isDarkMode) return null;
+
+  // Mobile Sun - properly visible size
+  const mobileScale = 0.03; // Sun radius = 15 * 0.03 = 0.45 units
+  const desktopScale = 1;
+  const scale = isMobile ? mobileScale : desktopScale;
+  
+  // Position in top right corner within mobile viewport
+  // At Z=10, viewport width ≈ 9 units, so right edge ≈ 4.5, top ≈ 2.5
+  const position = isMobile ? [3.5, 2, 10] : [80, 40, -150];
+
+  return (
+    <group position={position}>
+      {/* Main cartoon sun body - simplified for mobile */}
+      <mesh ref={sunRef}>
+        <sphereGeometry args={[15 * scale, isMobile ? 32 : 16, isMobile ? 32 : 16]} />
+        <meshBasicMaterial 
+          map={isMobile ? null : createCrossHatchTexture}
+          color="#FFD700"
+        />
+      </mesh>
+      
+      {/* Cartoon-style outline - thinner for mobile */}
+      <mesh>
+        <sphereGeometry args={[(15 + (isMobile ? 0.5 : 1)) * scale, isMobile ? 32 : 16, isMobile ? 32 : 16]} />
+        <meshBasicMaterial 
+          color="#FF8C00" 
+          transparent 
+          opacity={isMobile ? 0.6 : 0.8}
+          side={THREE.BackSide}
+        />
+      </mesh>
+      
+      {/* Angry red glow layers */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[20 * scale, 12, 12]} />
+        <meshBasicMaterial color="#FF4444" transparent opacity={0.5} />
+      </mesh>
+      
+      <mesh>
+        <sphereGeometry args={[25 * scale, 10, 10]} />
+        <meshBasicMaterial color="#FF6666" transparent opacity={0.3} />
+      </mesh>
+      
+      {/* Electric sparkle animations inside Sun */}
+      {[...Array(isMobile ? 6 : 12)].map((_, i) => {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 10 * scale;
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance;
+        const z = (Math.random() - 0.5) * 8 * scale;
+        
+        return (
+          <mesh 
+            key={`electric-${i}`}
+            position={[x, y, z]}
+            ref={el => electricityRefs.current[i] = el}
+          >
+            <sphereGeometry args={[0.8 * scale, 6, 6]} />
+            <meshBasicMaterial 
+              color={i % 3 === 0 ? "#FFFFFF" : i % 3 === 1 ? "#FFFF00" : "#00FFFF"}
+              transparent 
+              opacity={0.9}
+            />
+          </mesh>
+        );
+      })}
+      
+      {/* Lightning bolt effects */}
+      {[...Array(isMobile ? 3 : 6)].map((_, i) => {
+        const angle = (i / (isMobile ? 3 : 6)) * Math.PI * 2;
+        const startX = Math.cos(angle) * 5 * scale;
+        const startY = Math.sin(angle) * 5 * scale;
+        const endX = Math.cos(angle + 0.5) * 8 * scale;
+        const endY = Math.sin(angle + 0.5) * 8 * scale;
+        const midX = (startX + endX) / 2 + (Math.random() - 0.5) * 3 * scale;
+        const midY = (startY + endY) / 2 + (Math.random() - 0.5) * 3 * scale;
+        
+        return (
+          <group key={`lightning-${i}`}>
+            {/* Lightning segments */}
+            <mesh position={[(startX + midX) / 2, (startY + midY) / 2, 0]} rotation={[0, 0, Math.atan2(midY - startY, midX - startX)]}>
+              <boxGeometry args={[Math.sqrt((midX - startX) ** 2 + (midY - startY) ** 2), 0.3 * scale, 0.1]} />
+              <meshBasicMaterial color="#FFFFFF" transparent opacity={0.7} />
+            </mesh>
+            <mesh position={[(midX + endX) / 2, (midY + endY) / 2, 0]} rotation={[0, 0, Math.atan2(endY - midY, endX - midX)]}>
+              <boxGeometry args={[Math.sqrt((endX - midX) ** 2 + (endY - midY) ** 2), 0.3 * scale, 0.1]} />
+              <meshBasicMaterial color="#FFFFFF" transparent opacity={0.7} />
+            </mesh>
+          </group>
+        );
+      })}
+      
+      {/* Dynamic Lightning Strikes */}
+      {lightningStrikes.map((strike, i) => {
+        // Calculate lightning path with jagged segments
+        const segments = [];
+        for (let j = 0; j < strike.segments; j++) {
+          const progress = j / (strike.segments - 1);
+          const jagOffset = (Math.random() - 0.5) * 15 * scale;
+          
+          const x = strike.startX + (strike.endX - strike.startX) * progress + jagOffset;
+          const y = strike.startY + (strike.endY - strike.startY) * progress + jagOffset;
+          const z = strike.startZ + (strike.endZ - strike.startZ) * progress;
+          
+          if (j > 0) {
+            const prevX = segments[j-1].x;
+            const prevY = segments[j-1].y;
+            const prevZ = segments[j-1].z;
+            
+            const length = Math.sqrt((x - prevX) ** 2 + (y - prevY) ** 2 + (z - prevZ) ** 2);
+            const angle = Math.atan2(y - prevY, x - prevX);
+            const angleZ = Math.atan2(z - prevZ, Math.sqrt((x - prevX) ** 2 + (y - prevY) ** 2));
+            
+            segments.push({
+              x: (x + prevX) / 2,
+              y: (y + prevY) / 2, 
+              z: (z + prevZ) / 2,
+              length,
+              rotationZ: angle,
+              rotationY: angleZ
+            });
+          }
+          
+          segments.push({ x, y, z });
+        }
+        
+        return (
+          <group key={strike.id}>
+            {/* Main lightning bolt */}
+            {segments.filter((_, idx) => idx % 2 === 1).map((segment, segIdx) => (
+              <mesh
+                key={`lightning-${i}-${segIdx}`}
+                position={[segment.x, segment.y, segment.z]}
+                rotation={[0, segment.rotationY, segment.rotationZ]}
+                ref={el => lightningStrikesRefs.current[i * 10 + segIdx] = el}
+              >
+                <boxGeometry args={[segment.length, 1.5 * scale, 0.5 * scale]} />
+                <meshBasicMaterial 
+                  color={strike.color} 
+                  transparent 
+                  opacity={0.9}
+                />
+              </mesh>
+            ))}
+            
+            {/* Lightning glow effect */}
+            {segments.filter((_, idx) => idx % 2 === 1).map((segment, segIdx) => (
+              <mesh
+                key={`lightning-glow-${i}-${segIdx}`}
+                position={[segment.x, segment.y, segment.z]}
+                rotation={[0, segment.rotationY, segment.rotationZ]}
+              >
+                <boxGeometry args={[segment.length, 3 * scale, 1.5 * scale]} />
+                <meshBasicMaterial 
+                  color={strike.glowColor} 
+                  transparent 
+                  opacity={0.3}
+                />
+              </mesh>
+            ))}
+            
+            {/* Lightning impact flash on Sun */}
+            {strike.type === 'toSun' && (
+              <mesh position={[strike.endX, strike.endY, strike.endZ]}>
+                <sphereGeometry args={[5 * scale, 8, 8]} />
+                <meshBasicMaterial 
+                  color={strike.color} 
+                  transparent 
+                  opacity={0.6}
+                />
+              </mesh>
+            )}
+          </group>
+        );
+      })}
+      
+    </group>
+  );
+}
+
 // Simple floating asteroids
 function SimpleAsteroid({ position = [0, 0, 0], velocity = [0, -0.2, 0], size = 0.5 }) {
   const asteroidRef = useRef();
@@ -3419,9 +3754,91 @@ function SimpleAsteroid({ position = [0, 0, 0], velocity = [0, -0.2, 0], size = 
   );
 }
 
+// Beautiful nebula clouds for light mode
+function LightModeNebula({ isDarkMode }) {
+  const nebulaRefs = useRef([]);
+  
+  useFrame((state) => {
+    nebulaRefs.current.forEach((ref, i) => {
+      if (ref) {
+        // Gentle floating motion
+        ref.position.x += Math.sin(state.clock.elapsedTime * 0.2 + i) * 0.01;
+        ref.position.y += Math.cos(state.clock.elapsedTime * 0.15 + i) * 0.008;
+        
+        // Subtle rotation
+        ref.rotation.z += 0.0005 + i * 0.0001;
+        
+        // Breathing opacity effect
+        const breath = Math.sin(state.clock.elapsedTime * 0.5 + i * 0.3) * 0.1 + 0.9;
+        ref.material.opacity = breath * 0.15;
+      }
+    });
+  });
+
+  if (isDarkMode) return null;
+
+  return (
+    <group>
+      {/* Large background nebula clouds */}
+      {[...Array(8)].map((_, i) => {
+        const x = (Math.random() - 0.5) * 300;
+        const y = (Math.random() - 0.5) * 200;
+        const z = -200 - Math.random() * 100;
+        const size = 40 + Math.random() * 30;
+        
+        // Nebula colors: pink, cyan, purple, orange
+        const colors = ['#FF69B4', '#00CED1', '#9370DB', '#FFA500', '#32CD32', '#FF6347'];
+        const color = colors[i % colors.length];
+        
+        return (
+          <mesh 
+            key={`nebula-${i}`}
+            position={[x, y, z]}
+            ref={el => nebulaRefs.current[i] = el}
+          >
+            <sphereGeometry args={[size, 16, 16]} />
+            <meshBasicMaterial 
+              color={color}
+              transparent 
+              opacity={0.15}
+            />
+          </mesh>
+        );
+      })}
+      
+      {/* Smaller accent clouds */}
+      {[...Array(12)].map((_, i) => {
+        const x = (Math.random() - 0.5) * 400;
+        const y = (Math.random() - 0.5) * 250;
+        const z = -150 - Math.random() * 150;
+        const size = 15 + Math.random() * 20;
+        
+        const colors = ['#FFB6C1', '#B0E0E6', '#DDA0DD', '#F0E68C'];
+        const color = colors[i % colors.length];
+        
+        return (
+          <mesh 
+            key={`nebula-small-${i}`}
+            position={[x, y, z]}
+            ref={el => nebulaRefs.current[i + 8] = el}
+          >
+            <sphereGeometry args={[size, 12, 12]} />
+            <meshBasicMaterial 
+              color={color}
+              transparent 
+              opacity={0.1}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 // Simple particle field for distant stars
 function SimpleStarField({ isDarkMode = false }) {
   const starsRef = useRef();
+  const coloredStarsRef = useRef();
 
   const starPositions = useMemo(() => {
     const positions = new Float32Array(8000 * 3);
@@ -3433,28 +3850,89 @@ function SimpleStarField({ isDarkMode = false }) {
     return positions;
   }, []);
 
+  // Colorful star positions for light mode
+  const colorfulStarPositions = useMemo(() => {
+    const positions = new Float32Array(3000 * 3);
+    const colors = new Float32Array(3000 * 3);
+    
+    for (let i = 0; i < 3000; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 400;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 400;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 400;
+      
+      // Random bright colors for light mode
+      const colorChoice = Math.random();
+      if (colorChoice < 0.25) {
+        colors[i * 3] = 1; colors[i * 3 + 1] = 0.3; colors[i * 3 + 2] = 0.8; // Pink
+      } else if (colorChoice < 0.5) {
+        colors[i * 3] = 0.3; colors[i * 3 + 1] = 0.8; colors[i * 3 + 2] = 1; // Cyan
+      } else if (colorChoice < 0.75) {
+        colors[i * 3] = 1; colors[i * 3 + 1] = 0.8; colors[i * 3 + 2] = 0.3; // Gold
+      } else {
+        colors[i * 3] = 0.8; colors[i * 3 + 1] = 0.3; colors[i * 3 + 2] = 1; // Purple
+      }
+    }
+    return { positions, colors };
+  }, []);
+
   useFrame(() => {
     if (starsRef.current) {
       starsRef.current.rotation.y += 0.0002;
     }
+    if (coloredStarsRef.current) {
+      coloredStarsRef.current.rotation.y += 0.0003;
+      coloredStarsRef.current.rotation.x += 0.0001;
+    }
   });
 
   return (
-    <points ref={starsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={starPositions.length / 3}
-          array={starPositions}
-          itemSize={3}
+    <>
+      {/* Regular stars */}
+      <points ref={starsRef}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={starPositions.length / 3}
+            array={starPositions}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <pointsMaterial
+          size={isDarkMode ? 1 : 0.5}
+          color={isDarkMode ? '#ffffff' : '#666666'}
+          sizeAttenuation={false}
+          transparent
+          opacity={isDarkMode ? 1 : 0.3}
         />
-      </bufferGeometry>
-      <pointsMaterial
-        size={1}
-        color={isDarkMode ? '#ffffff' : '#000000'}
-        sizeAttenuation={false}
-      />
-    </points>
+      </points>
+
+      {/* Colorful stars for light mode */}
+      {!isDarkMode && (
+        <points ref={coloredStarsRef}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              count={colorfulStarPositions.positions.length / 3}
+              array={colorfulStarPositions.positions}
+              itemSize={3}
+            />
+            <bufferAttribute
+              attach="attributes-color"
+              count={colorfulStarPositions.colors.length / 3}
+              array={colorfulStarPositions.colors}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <pointsMaterial
+            size={1.5}
+            sizeAttenuation={false}
+            transparent
+            opacity={0.8}
+            vertexColors={true}
+          />
+        </points>
+      )}
+    </>
   );
 }
 
@@ -3805,9 +4283,26 @@ function SimpleSpaceScene() {
 
   return (
     <>
-      {/* Basic lighting */}
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[10, 10, 5]} intensity={0.5} />
+      {/* Lighting - different for light and dark modes */}
+      {isDarkMode ? (
+        <>
+          <ambientLight intensity={0.3} />
+          <directionalLight position={[10, 10, 5]} intensity={0.5} />
+        </>
+      ) : (
+        <>
+          {/* Daylight simulation lighting */}
+          <ambientLight intensity={0.8} color="#FFFACD" />
+          <directionalLight position={[80, 40, -150]} intensity={0.6} color="#FFD700" />
+          <pointLight position={[80, 40, -150]} intensity={1} color="#FFA500" distance={200} />
+        </>
+      )}
+      
+      {/* Sun for light mode */}
+      <Sun isDarkMode={isDarkMode} />
+      
+      {/* Beautiful nebula clouds for light mode */}
+      <LightModeNebula isDarkMode={isDarkMode} />
       
       {/* Star field */}
       <SimpleStarField isDarkMode={isDarkMode} />
@@ -3816,12 +4311,12 @@ function SimpleSpaceScene() {
       <Stars
         radius={300}
         depth={50}
-        count={5000}
-        factor={4}
-        saturation={0}
+        count={isDarkMode ? 5000 : 2500}
+        factor={isDarkMode ? 4 : 2}
+        saturation={isDarkMode ? 0 : 0.8}
         fade={true}
         speed={0.5}
-        color={isDarkMode ? '#ffffff' : '#000000'}
+        color={isDarkMode ? '#ffffff' : '#FFD700'}
       />
 
       {/* Spaceships */}
