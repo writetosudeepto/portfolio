@@ -1039,6 +1039,7 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
             key={circle.id}
             className={`planetary-circle ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''}`}
             style={{
+              position: isMobile ? 'fixed' : 'absolute', // Fixed positioning on mobile to stay above all content
               left: circle.x - circle.size / 2,
               top: circle.y - circle.size / 2,
               width: circle.size,
@@ -1063,7 +1064,7 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
               border: `2px solid ${circle.color}${isHovered ? '80' : '40'}`,
               cursor: 'pointer',
               zIndex: isMobile 
-                ? (isHovered || isSelected ? 25 : 20) // Force high z-index on mobile
+                ? (isHovered || isSelected ? 9999 : 9998) // Very high z-index on mobile to overcome all content
                 : (isHovered || isSelected ? 20 : Math.round((1 - depthRatio) * 10) + 5), // Desktop depth-based z-index
               // Ensure mobile clickability
               touchAction: 'manipulation',
@@ -1090,8 +1091,15 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
               e.stopPropagation();
               handlePlanetClick(circle, skillData);
             }}
-            // Additional mobile support
+            // Additional mobile support - multiple event handlers for maximum compatibility
             onPointerDown={(e) => {
+              if (isMobile) {
+                e.preventDefault();
+                e.stopPropagation();
+                handlePlanetClick(circle, skillData);
+              }
+            }}
+            onMouseDown={(e) => {
               if (isMobile) {
                 e.preventDefault();
                 e.stopPropagation();
