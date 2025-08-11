@@ -24,22 +24,24 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
   const [collisionEffects, setCollisionEffects] = useState([]);
   const [hoveredPlanet, setHoveredPlanet] = useState(null);
   
-  // Define skills with their properties - mobile-optimized sizes
-  const getMobileSize = (size) => {
-    if (window.innerWidth <= 450) {
-      return Math.round(size * 0.25); // Much smaller for mobile
-    } else if (window.innerWidth <= 768) {
-      return Math.round(size * 0.3); // Smaller for mobile
-    } else if (window.innerWidth <= 1200) {
-      return Math.round(size * 0.8); // Keep tablets the same
-    }
-    return size; // Full size on desktop
-  };
-
+  // Define skills as planets with orbital distances and size scaling
   const skillsData = [
     { 
+      image: images.react, 
+      baseSize: 90, 
+      orbitalDistance: 0.8, // Closest to center (Mercury-like)
+      color: '#61dafb', 
+      mass: 1.05,
+      name: 'React',
+      description: 'JavaScript library for building interactive user interfaces',
+      experience: '4+ years',
+      proficiency: 93,
+      projects: ['Web Applications', 'Component Libraries', 'SPA Development']
+    },
+    { 
       image: images.python, 
-      size: getMobileSize(120), 
+      baseSize: 95, 
+      orbitalDistance: 1.2, // Second orbit (Venus-like)
       color: '#3776ab', 
       mass: 1.2,
       name: 'Python',
@@ -49,8 +51,33 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
       projects: ['Machine Learning Models', 'Data Analysis Tools', 'Web APIs']
     },
     { 
+      image: images.sql, 
+      baseSize: 85, 
+      orbitalDistance: 1.6, // Third orbit (Earth-like)
+      color: '#336791', 
+      mass: 1.1,
+      name: 'SQL',
+      description: 'Database query language for data retrieval and manipulation',
+      experience: '5+ years',
+      proficiency: 92,
+      projects: ['Database Design', 'Data Warehousing', 'Query Optimization']
+    },
+    { 
+      image: images.flutter, 
+      baseSize: 80, 
+      orbitalDistance: 2.0, // Fourth orbit (Mars-like)
+      color: '#02569b', 
+      mass: 1.3,
+      name: 'Flutter',
+      description: 'Cross-platform mobile app development framework by Google',
+      experience: '3+ years',
+      proficiency: 88,
+      projects: ['Mobile Apps', 'Cross-Platform Development', 'UI/UX Design']
+    },
+    { 
       image: images.numpy, 
-      size: getMobileSize(130), 
+      baseSize: 75, 
+      orbitalDistance: 2.4, // Fifth orbit (Jupiter-like)
       color: '#013243', 
       mass: 1.5,
       name: 'NumPy',
@@ -61,7 +88,8 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
     },
     { 
       image: images.tableau, 
-      size: getMobileSize(115), 
+      baseSize: 70, 
+      orbitalDistance: 2.8, // Sixth orbit (Saturn-like)
       color: '#e97627', 
       mass: 1.0,
       name: 'Tableau',
@@ -71,19 +99,9 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
       projects: ['Business Dashboards', 'Data Analytics', 'Interactive Reports']
     },
     { 
-      image: images.sql, 
-      size: getMobileSize(125), 
-      color: '#336791', 
-      mass: 1.1,
-      name: 'SQL',
-      description: 'Database query language for data retrieval and manipulation',
-      experience: '5+ years',
-      proficiency: 92,
-      projects: ['Database Design', 'Data Warehousing', 'Query Optimization']
-    },
-    { 
       image: images.bigQuery, 
-      size: getMobileSize(110), 
+      baseSize: 65, 
+      orbitalDistance: 3.2, // Seventh orbit (Uranus-like)
       color: '#4285f4', 
       mass: 0.9,
       name: 'BigQuery',
@@ -92,29 +110,25 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
       proficiency: 80,
       projects: ['Big Data Analytics', 'Cloud Data Processing', 'ML Pipelines']
     },
-    { 
-      image: images.flutter, 
-      size: getMobileSize(135), 
-      color: '#02569b', 
-      mass: 1.3,
-      name: 'Flutter',
-      description: 'Cross-platform mobile app development framework by Google',
-      experience: '3+ years',
-      proficiency: 88,
-      projects: ['Mobile Apps', 'Cross-Platform Development', 'UI/UX Design']
-    },
-    { 
-      image: images.react, 
-      size: getMobileSize(118), 
-      color: '#61dafb', 
-      mass: 1.05,
-      name: 'React',
-      description: 'JavaScript library for building interactive user interfaces',
-      experience: '4+ years',
-      proficiency: 93,
-      projects: ['Web Applications', 'Component Libraries', 'SPA Development']
-    },
   ];
+
+  // Calculate planet size based on distance (perspective scaling)
+  const calculatePlanetSize = (baseSize, orbitalDistance, isDesktop = true) => {
+    if (!isDesktop) {
+      // Mobile scaling - simpler approach
+      if (window.innerWidth <= 450) {
+        return Math.round(baseSize * 0.3);
+      } else if (window.innerWidth <= 768) {
+        return Math.round(baseSize * 0.4);
+      }
+      return Math.round(baseSize * 0.6);
+    }
+    
+    // Desktop - realistic distance-based scaling
+    // Closer planets appear larger, distant ones smaller
+    const perspectiveScale = Math.max(0.6, 1.1 - (orbitalDistance - 0.8) * 0.15);
+    return Math.round(baseSize * perspectiveScale);
+  };
 
   const [circles, setCircles] = useState([]);
 
@@ -239,136 +253,103 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
       
-      // Helper function to find free space and avoid overlapping orbits
-      const findOptimalOrbitCenter = (index, planetSize, usedPositions) => {
-        const margin = planetSize + 50; // Safety margin around planets
+      // Get garland positions around screen edges (avoiding center)
+      const getGarlandPositions = () => {
         const isDesktop = windowWidth > 1200;
         const isMobile = windowWidth <= 768;
         
-        // Define potential orbital centers with safe boundaries
-        let candidates;
-        
         if (isDesktop) {
-          candidates = [
-            { x: windowWidth * 0.2, y: windowHeight * 0.3 },   // Top left
-            { x: windowWidth * 0.8, y: windowHeight * 0.3 },   // Top right  
-            { x: windowWidth * 0.2, y: windowHeight * 0.7 },   // Bottom left
-            { x: windowWidth * 0.8, y: windowHeight * 0.7 },   // Bottom right
-            { x: windowWidth * 0.15, y: windowHeight * 0.5 },  // Middle left
-            { x: windowWidth * 0.85, y: windowHeight * 0.5 },  // Middle right
-            { x: windowWidth * 0.5, y: windowHeight * 0.2 },   // Top center
+          // Desktop: Respect boundaries - below navbar, outside tickets, away from center profile
+          return [
+            { x: windowWidth * 0.85, y: windowHeight * 0.2 },   // Top-right (below navbar, outside ticket area)
+            { x: windowWidth * 0.92, y: windowHeight * 0.4 },   // Right-upper (safe from ticket zone)
+            { x: windowWidth * 0.92, y: windowHeight * 0.65 },  // Right-lower  
+            { x: windowWidth * 0.82, y: windowHeight * 0.85 },  // Bottom-right (inside screen bounds)
+            { x: windowWidth * 0.25, y: windowHeight * 0.85 },  // Bottom-left (inside screen bounds)
+            { x: windowWidth * 0.08, y: windowHeight * 0.7 },   // Left-lower (inside screen, away from center)
+            { x: windowWidth * 0.08, y: windowHeight * 0.35 },  // Left-upper (below navbar, away from center)
           ];
         } else if (isMobile) {
-          // Mobile: Spread planets widely across entire screen
-          candidates = [
-            { x: windowWidth * 0.15, y: windowHeight * 0.2 },  // Top left corner
-            { x: windowWidth * 0.85, y: windowHeight * 0.2 },  // Top right corner
-            { x: windowWidth * 0.1, y: windowHeight * 0.5 },   // Middle left edge
-            { x: windowWidth * 0.9, y: windowHeight * 0.5 },   // Middle right edge
-            { x: windowWidth * 0.2, y: windowHeight * 0.8 },   // Bottom left
-            { x: windowWidth * 0.8, y: windowHeight * 0.8 },   // Bottom right
-            { x: windowWidth * 0.5, y: windowHeight * 0.15 },  // Top center edge
-            { x: windowWidth * 0.5, y: windowHeight * 0.85 },  // Bottom center edge
-            { x: windowWidth * 0.25, y: windowHeight * 0.35 }, // Mid-left upper
-            { x: windowWidth * 0.75, y: windowHeight * 0.35 }, // Mid-right upper
-            { x: windowWidth * 0.3, y: windowHeight * 0.65 },  // Mid-left lower
-            { x: windowWidth * 0.7, y: windowHeight * 0.65 },  // Mid-right lower
+          // Mobile: Spread around entire screen perimeter
+          return [
+            { x: windowWidth * 0.2, y: windowHeight * 0.15 },  // Top-left
+            { x: windowWidth * 0.8, y: windowHeight * 0.15 },  // Top-right
+            { x: windowWidth * 0.9, y: windowHeight * 0.4 },   // Right-upper
+            { x: windowWidth * 0.9, y: windowHeight * 0.6 },   // Right-lower
+            { x: windowWidth * 0.8, y: windowHeight * 0.85 },  // Bottom-right
+            { x: windowWidth * 0.2, y: windowHeight * 0.85 },  // Bottom-left
+            { x: windowWidth * 0.1, y: windowHeight * 0.4 },   // Left-upper
           ];
         } else {
           // Tablet view
-          candidates = [
-            { x: windowWidth * 0.25, y: windowHeight * 0.35 },
-            { x: windowWidth * 0.75, y: windowHeight * 0.35 },
-            { x: windowWidth * 0.25, y: windowHeight * 0.65 },
-            { x: windowWidth * 0.75, y: windowHeight * 0.65 },
-            { x: windowWidth * 0.5, y: windowHeight * 0.3 },
-            { x: windowWidth * 0.5, y: windowHeight * 0.7 },
+          return [
+            { x: windowWidth * 0.2, y: windowHeight * 0.2 },   // Top-left
+            { x: windowWidth * 0.8, y: windowHeight * 0.2 },   // Top-right
+            { x: windowWidth * 0.85, y: windowHeight * 0.5 },  // Right-middle
+            { x: windowWidth * 0.8, y: windowHeight * 0.8 },   // Bottom-right
+            { x: windowWidth * 0.2, y: windowHeight * 0.8 },   // Bottom-left
+            { x: windowWidth * 0.15, y: windowHeight * 0.5 },  // Left-middle
+            { x: windowWidth * 0.5, y: windowHeight * 0.15 },  // Top-center
           ];
         }
-        
-        // Find the position with maximum distance from used positions
-        let bestPosition = candidates[0];
-        let maxMinDistance = 0;
-        
-        for (const candidate of candidates) {
-          let minDistance = Infinity;
-          for (const used of usedPositions) {
-            const dist = Math.sqrt((candidate.x - used.x) ** 2 + (candidate.y - used.y) ** 2);
-            minDistance = Math.min(minDistance, dist);
-          }
-          
-          if (minDistance > maxMinDistance) {
-            maxMinDistance = minDistance;
-            bestPosition = candidate;
-          }
-        }
-        
-        return bestPosition;
       };
       
-      // Helper function to calculate safe orbital radius
-      const calculateSafeRadius = (centerX, centerY, planetSize, windowWidth, windowHeight) => {
-        // Calculate maximum safe radius to keep planet within screen bounds
-        const isMobile = windowWidth <= 768;
-        const marginFromEdge = planetSize + (isMobile ? 30 : 25); // Reduced mobile margin for wider movement
-        const maxRadiusX = Math.min(centerX - marginFromEdge, windowWidth - centerX - marginFromEdge);
-        const maxRadiusY = Math.min(centerY - marginFromEdge, windowHeight - centerY - marginFromEdge);
-        const maxSafeRadius = Math.min(maxRadiusX, maxRadiusY);
-        
-        // Mobile-specific radius calculations
-        if (isMobile) {
-          // Larger radii for mobile to allow widespread movement across screen
-          const minRadius = Math.min(windowWidth, windowHeight) * 0.08; // Larger base for movement
-          const baseRadius = Math.max(minRadius, maxSafeRadius * 0.4); // Allow more movement
-          const maxRadius = Math.max(minRadius * 1.8, maxSafeRadius * 0.7); // Much wider orbits
-          return { baseRadius, maxRadius, maxSafeRadius };
+      // Calculate 3D garland movement radius around each position
+      const calculateGarlandRadius = (isDesktop) => {
+        if (isDesktop) {
+          return Math.min(windowWidth, windowHeight) * 0.06; // Small orbits around each garland point
         } else {
-          // Desktop calculations with slightly adjusted ratios
-          const minRadius = Math.min(windowWidth, windowHeight) * 0.1;
-          const baseRadius = Math.max(minRadius, maxSafeRadius * 0.4);
-          const maxRadius = Math.max(minRadius * 1.6, maxSafeRadius * 0.75);
-          return { baseRadius, maxRadius, maxSafeRadius };
+          return Math.min(windowWidth, windowHeight) * 0.08; // Slightly larger for mobile
         }
       };
 
-      const usedPositions = [];
+      // Get garland positions and create 3D floating motion
+      const garlandPositions = getGarlandPositions();
+      const isDesktop = windowWidth > 1200;
+      const garlandRadius = calculateGarlandRadius(isDesktop);
+      
       const initialCircles = skillsData.map((skill, index) => {
-        const isDesktop = windowWidth > 1200;
+        // Calculate planet size with 3D depth effect
+        const planetSize = calculatePlanetSize(skill.baseSize, skill.orbitalDistance, isDesktop);
         
-        // Find optimal position for this planet
-        const optimalCenter = findOptimalOrbitCenter(index, skill.size, usedPositions);
-        const centerX = optimalCenter.x;
-        const centerY = optimalCenter.y;
-        usedPositions.push(optimalCenter);
+        // Assign each planet to a garland position
+        const garlandPoint = garlandPositions[index % garlandPositions.length];
+        const centerX = garlandPoint.x;
+        const centerY = garlandPoint.y;
         
-        // Calculate safe orbital parameters
-        const { baseRadius, maxRadius } = calculateSafeRadius(centerX, centerY, skill.size, windowWidth, windowHeight);
-        const radiusVariation = baseRadius + (maxRadius - baseRadius) * (index / (skillsData.length - 1));
-        const semiMajorAxis = radiusVariation + Math.random() * (maxRadius - baseRadius) * 0.2; // Reduced randomness
-        
-        // Mobile-specific eccentricity constraints
-        const isMobile = windowWidth <= 768;
-        const eccentricity = isMobile 
-          ? 0.2 + (Math.random() * 0.3)  // Higher eccentricity for wider mobile orbits
-          : 0.15 + (Math.random() * 0.25); // Good eccentricity for desktop
+        // Create small circular motion around each garland point
+        const localRadius = garlandRadius * (0.5 + Math.random() * 0.5); // Vary radius for 3D effect
+        const eccentricity = 0.1 + Math.random() * 0.2; // Slight elliptical motion
+        const semiMajorAxis = localRadius;
         const semiMinorAxis = semiMajorAxis * Math.sqrt(1 - eccentricity * eccentricity);
         
-        // Random starting angles for distribution
+        // Random starting angle for natural distribution
         const meanAnomaly = Math.random() * Math.PI * 2;
         
-        // Varied orbital periods
-        const basePeriod = 0.0004 + (Math.random() * 0.0004);
-        const orbitalPeriod = basePeriod * Math.pow(semiMajorAxis / baseRadius, -1.2);
+        // Varied orbital periods for dynamic movement
+        const baseOrbitalPeriod = 0.0008 + (Math.random() * 0.0006);
+        const orbitalPeriod = baseOrbitalPeriod * (0.8 + Math.random() * 0.4); // Varied speeds
         
-        // Calculate initial position with boundary check
+        // Calculate initial position
         const eccentricAnomaly = meanAnomaly;
         let x = centerX + semiMajorAxis * (Math.cos(eccentricAnomaly) - eccentricity);
         let y = centerY + semiMinorAxis * Math.sin(eccentricAnomaly);
         
-        // Ensure initial position is within screen bounds
-        const halfSize = skill.size / 2;
-        x = Math.max(halfSize, Math.min(windowWidth - halfSize, x));
-        y = Math.max(halfSize, Math.min(windowHeight - halfSize, y));
+        // Add 3D motion parameters (X, Y, Z axes)
+        const bobbingAmplitude = 15 + Math.random() * 20; // Vertical bobbing range
+        const bobbingPhase = Math.random() * Math.PI * 2; // Random starting phase
+        const bobbingSpeed = 0.01 + Math.random() * 0.015; // Bobbing frequency
+        
+        // Z-axis (depth) motion parameters
+        const zDepthRange = 200 + Math.random() * 300; // How far forward/backward planet moves
+        const zPhase = Math.random() * Math.PI * 2; // Random Z starting phase
+        const zSpeed = 0.005 + Math.random() * 0.01; // Z-axis movement speed
+        const baseZ = 100 + Math.random() * 100; // Base Z position (distance from viewer)
+        
+        // Ensure planet stays within screen bounds
+        const halfSize = planetSize / 2;
+        x = Math.max(halfSize + 10, Math.min(windowWidth - halfSize - 10, x));
+        y = Math.max(halfSize + 10, Math.min(windowHeight - halfSize - 10, y));
         
         return {
           id: index,
@@ -381,14 +362,27 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
           eccentricity: eccentricity,
           meanAnomaly: meanAnomaly,
           orbitalPeriod: orbitalPeriod,
+          orbitalDistance: skill.orbitalDistance, // For size scaling
           clockwise: Math.random() > 0.5,
-          size: skill.size,
+          size: planetSize,
           image: skill.image,
           color: skill.color,
           mass: skill.mass,
           collisionEffect: 0,
           rotationAngle: Math.random() * Math.PI * 2,
-          rotationSpeed: (0.01 + Math.random() * 0.04) * (skill.mass || 1),
+          rotationSpeed: (0.005 + Math.random() * 0.02) * (skill.mass || 1),
+          // 3D floating parameters
+          bobbingAmplitude: bobbingAmplitude,
+          bobbingPhase: bobbingPhase,
+          bobbingSpeed: bobbingSpeed,
+          baseY: centerY, // Store base Y for bobbing calculation
+          // Z-axis (depth) parameters
+          zDepthRange: zDepthRange,
+          zPhase: zPhase,
+          zSpeed: zSpeed,
+          baseZ: baseZ,
+          currentZ: baseZ, // Current Z position
+          baseSize: planetSize, // Store original size for perspective scaling
           // Store window bounds for boundary checking
           windowWidth: windowWidth,
           windowHeight: windowHeight,
@@ -458,22 +452,85 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
           // Calculate distance from focus (variable distance in ellipse)
           const radius = circle.semiMajorAxis * (1 - circle.eccentricity * Math.cos(eccentricAnomaly));
           
-          // Calculate position in elliptical orbit
+          // Calculate position in elliptical orbit (small circular motion around garland point)
           let newX = circle.centerX + radius * Math.cos(trueAnomaly);
           let newY = circle.centerY + circle.semiMinorAxis * Math.sin(eccentricAnomaly);
           
-          // Apply boundary constraints to keep planets on screen
-          const halfSize = circle.size / 2;
-          const windowWidth = circle.windowWidth || window.innerWidth;
-          const windowHeight = circle.windowHeight || window.innerHeight;
-          const isMobile = windowWidth <= 768;
+          // Add 3D motion along all three axes
+          const currentTime = Date.now() * 0.001; // Convert to seconds
           
-          // Balanced margin for mobile to allow wider movement while staying visible
-          const margin = isMobile ? 30 : 10; // Reduced margin for wider mobile movement
+          // Y-axis (vertical bobbing)
+          const bobbingTime = currentTime * circle.bobbingSpeed + circle.bobbingPhase;
+          const bobbingOffset = Math.sin(bobbingTime) * circle.bobbingAmplitude;
+          newY += bobbingOffset;
           
-          // Clamp position to screen boundaries
-          newX = Math.max(halfSize + margin, Math.min(windowWidth - halfSize - margin, newX));
-          newY = Math.max(halfSize + margin, Math.min(windowHeight - halfSize - margin, newY));
+          // X-axis (horizontal swaying)
+          const swayingOffset = Math.cos(bobbingTime * 0.7) * (circle.bobbingAmplitude * 0.3);
+          newX += swayingOffset;
+          
+          // Z-axis (depth movement) - true 3D motion
+          const zTime = currentTime * circle.zSpeed + circle.zPhase;
+          const zOffset = Math.sin(zTime) * circle.zDepthRange;
+          const currentZ = circle.baseZ + zOffset;
+          
+          // Apply perspective scaling based on Z position
+          // Closer objects (lower Z) appear larger, farther objects (higher Z) appear smaller
+          const perspectiveDistance = 800; // Increased virtual camera distance for less dramatic scaling
+          const perspectiveScale = Math.max(0.4, Math.min(1.4, perspectiveDistance / (perspectiveDistance + currentZ)));
+          const scaledSize = Math.max(30, Math.min(120, circle.baseSize * perspectiveScale));
+          
+          // Apply perspective to position (parallax effect)
+          const currentWindowWidth = circle.windowWidth || window.innerWidth;
+          const currentWindowHeight = circle.windowHeight || window.innerHeight;
+          const centerX = currentWindowWidth / 2;
+          const centerY = currentWindowHeight / 2;
+          const parallaxX = (newX - centerX) * perspectiveScale + centerX;
+          const parallaxY = (newY - centerY) * perspectiveScale + centerY;
+          
+          newX = parallaxX;
+          newY = parallaxY;
+          
+          // Apply boundary constraints respecting UI elements
+          const halfSize = scaledSize / 2;
+          const isMobile = currentWindowWidth <= 768;
+          
+          // Define safe zones avoiding navbar, tickets, and center profile
+          const navbarHeight = isMobile ? currentWindowHeight * 0.12 : currentWindowHeight * 0.15;
+          const centerZoneLeft = currentWindowWidth * 0.35;
+          const centerZoneRight = currentWindowWidth * 0.65;
+          const centerZoneTop = currentWindowHeight * 0.25;
+          const centerZoneBottom = currentWindowHeight * 0.75;
+          
+          // Margin to keep planets visible and away from UI elements
+          const margin = isMobile ? 25 : 20;
+          
+          // Horizontal boundaries (stay in viewport)
+          newX = Math.max(halfSize + margin, Math.min(currentWindowWidth - halfSize - margin, newX));
+          
+          // Vertical boundaries (below navbar, in viewport)  
+          newY = Math.max(navbarHeight + halfSize, Math.min(currentWindowHeight - halfSize - margin, newY));
+          
+          // Avoid center profile image area (push planets away if they get too close)
+          if (newX > centerZoneLeft && newX < centerZoneRight && 
+              newY > centerZoneTop && newY < centerZoneBottom) {
+            // Push to nearest edge outside center zone
+            const distToLeft = newX - centerZoneLeft;
+            const distToRight = centerZoneRight - newX;
+            const distToTop = newY - centerZoneTop;
+            const distToBottom = centerZoneBottom - newY;
+            
+            const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);
+            
+            if (minDist === distToLeft) {
+              newX = centerZoneLeft - halfSize - 10;
+            } else if (minDist === distToRight) {
+              newX = centerZoneRight + halfSize + 10;
+            } else if (minDist === distToTop) {
+              newY = centerZoneTop - halfSize - 10;
+            } else {
+              newY = centerZoneBottom + halfSize + 10;
+            }
+          }
           
           // Update planetary rotation
           const newRotationAngle = circle.rotationAngle + circle.rotationSpeed;
@@ -482,6 +539,8 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
             ...circle,
             x: newX,
             y: newY,
+            size: scaledSize, // Update size based on Z-depth perspective
+            currentZ: currentZ, // Store current Z position
             meanAnomaly: newMeanAnomaly,
             eccentricAnomaly: eccentricAnomaly,
             trueAnomaly: trueAnomaly,
