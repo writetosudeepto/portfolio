@@ -1,3 +1,55 @@
+/* Spacecraft Monitoring System Styles */
+@keyframes spacecraft-glow {
+  0% {
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.1);
+    border-color: #00ffff;
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.8), inset 0 0 15px rgba(0, 255, 255, 0.2);
+    border-color: #80ffff;
+  }
+}
+
+.spacecraft-label {
+  /* Base technical styling */
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+    border-radius: 6px;
+    z-index: -1;
+    animation: spacecraft-scan 3s linear infinite;
+  }
+}
+
+@keyframes spacecraft-glow-light-blue {
+  0% {
+    box-shadow: 0 0 15px rgba(68, 136, 255, 0.5), inset 0 0 10px rgba(68, 136, 255, 0.1);
+    border-color: #4488ff;
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(68, 136, 255, 0.8), inset 0 0 15px rgba(68, 136, 255, 0.2);
+    border-color: #66aaff;
+  }
+}
+
+@keyframes spacecraft-scan {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Enhanced HUD styling for technical appearance */
+.spacecraft-label div {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
 #home {
     position: relative;
     // Removed background image to allow 3D space objects to be visible

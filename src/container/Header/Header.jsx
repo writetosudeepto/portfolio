@@ -23,8 +23,27 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
   const meteorsRef = useRef([]);
   const [collisionEffects, setCollisionEffects] = useState([]);
   const [hoveredPlanet, setHoveredPlanet] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [supernovas, setSupernovas] = useState([]);
   const [flyingGuitars, setFlyingGuitars] = useState([]);
+
+  // Theme detection
+  useEffect(() => {
+    const checkTheme = () => {
+      const theme = document.documentElement?.getAttribute('data-theme');
+      setIsDarkMode(theme === 'dark');
+    };
+
+    checkTheme();
+    
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+
+    return () => observer.disconnect();
+  }, []);
   
   // Define skills as planets with orbital distances and size scaling
   const skillsData = [
@@ -1119,32 +1138,121 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
               }}
             />
             
-            {/* Hover tooltip */}
-            {isHovered && (
-              <motion.div
-                className="planet-tooltip"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+            {/* Spacecraft Monitoring System Label */}
+            {skillData?.name && (isHovered || isSelected) && (
+              <div
+                className={`spacecraft-label ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
                 style={{
                   position: 'absolute',
-                  top: circle.size + 10,
+                  bottom: `-${circle.size * 0.8}px`,
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  background: `linear-gradient(135deg, ${circle.color}20, rgba(0,0,0,0.9))`,
-                  color: 'white',
+                  minWidth: '120px',
+                  maxWidth: '200px',
                   padding: '8px 12px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: '600',
+                  background: isDarkMode 
+                    ? 'linear-gradient(135deg, rgba(0, 20, 40, 0.95) 0%, rgba(0, 40, 80, 0.95) 100%)'
+                    : 'linear-gradient(135deg, rgba(20, 40, 80, 0.95) 0%, rgba(40, 60, 120, 0.95) 100%)',
+                  border: isDarkMode ? '1px solid #00ffff' : '1px solid #4488ff',
+                  borderRadius: '4px',
+                  color: isDarkMode ? '#00ffff' : '#4488ff',
+                  fontSize: `${Math.max(10, circle.size * 0.12)}px`,
+                  fontFamily: 'Courier New, monospace',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  boxShadow: isDarkMode 
+                    ? '0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.1)'
+                    : '0 0 15px rgba(255, 136, 0, 0.5), inset 0 0 10px rgba(255, 136, 0, 0.1)',
+                  backdropFilter: 'blur(5px)',
+                  zIndex: 10000,
+                  pointerEvents: 'none',
                   whiteSpace: 'nowrap',
-                  backdropFilter: 'blur(10px)',
-                  border: `1px solid ${circle.color}40`,
-                  zIndex: 20,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  animation: isDarkMode ? 'spacecraft-glow-dark 2s ease-in-out infinite alternate' : 'spacecraft-glow-light-blue 2s ease-in-out infinite alternate',
                 }}
               >
-                {skillData?.name}
-              </motion.div>
+                <div style={{ 
+                  fontSize: `${Math.max(8, circle.size * 0.1)}px`, 
+                  opacity: 0.7, 
+                  marginBottom: '2px',
+                  color: isDarkMode ? '#80ffff' : '#66aaff'
+                }}>
+                  SKILL MODULE
+                </div>
+                <div style={{ 
+                  fontSize: `${Math.max(11, circle.size * 0.13)}px`,
+                  textShadow: isDarkMode ? '0 0 8px #00ffff' : '0 0 8px #4488ff'
+                }}>
+                  {skillData.name}
+                </div>
+                <div style={{ 
+                  fontSize: `${Math.max(7, circle.size * 0.09)}px`, 
+                  opacity: 0.6, 
+                  marginTop: '2px',
+                  color: isDarkMode ? '#60ffff' : '#5599ff'
+                }}>
+                  STATUS: ACTIVE
+                </div>
+                
+                {/* Technical corner elements */}
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  left: '2px',
+                  width: '8px',
+                  height: '8px',
+                  border: '1px solid #00ffff',
+                  borderRight: 'none',
+                  borderBottom: 'none'
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  right: '2px',
+                  width: '8px',
+                  height: '8px',
+                  border: '1px solid #00ffff',
+                  borderLeft: 'none',
+                  borderBottom: 'none'
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '2px',
+                  left: '2px',
+                  width: '8px',
+                  height: '8px',
+                  border: '1px solid #00ffff',
+                  borderRight: 'none',
+                  borderTop: 'none'
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '2px',
+                  right: '2px',
+                  width: '8px',
+                  height: '8px',
+                  border: '1px solid #00ffff',
+                  borderLeft: 'none',
+                  borderTop: 'none'
+                }} />
+                
+                {/* Connection line to planet */}
+                <div style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '2px',
+                  height: '8px',
+                  background: 'linear-gradient(to bottom, #00ffff, transparent)',
+                  boxShadow: '0 0 4px #00ffff'
+                }} />
+              </div>
             )}
+            
           </motion.div>
         );
       })}
