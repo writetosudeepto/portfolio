@@ -3400,6 +3400,11 @@ function Sun({ isDarkMode }) {
   }, []);
 
   // Cross-hatching texture creation - move before conditional return
+  // Calculate scale early to avoid initialization errors
+  const mobileScale = 0.03; // Sun radius = 15 * 0.03 = 0.45 units
+  const desktopScale = 1;
+  const scale = isMobile ? mobileScale : desktopScale;
+
   const createCrossHatchTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 512;
@@ -3536,11 +3541,6 @@ function Sun({ isDarkMode }) {
   // Don't render sun in dark mode
   if (isDarkMode) return null;
 
-  // Mobile Sun - properly visible size
-  const mobileScale = 0.03; // Sun radius = 15 * 0.03 = 0.45 units
-  const desktopScale = 1;
-  const scale = isMobile ? mobileScale : desktopScale;
-  
   // Position in top right corner within mobile viewport
   // At Z=10, viewport width ≈ 9 units, so right edge ≈ 4.5, top ≈ 2.5
   const position = isMobile ? [3.5, 2, 10] : [80, 40, -150];
