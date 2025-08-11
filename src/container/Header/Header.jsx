@@ -355,11 +355,11 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
         // Define safe zones to avoid
         const centerX = windowWidth * 0.5;
         const centerY = windowHeight * 0.5;
-        const centerRadius = Math.min(windowWidth, windowHeight) * (isDesktop ? 0.2 : isMobile ? 0.25 : 0.22);
+        const centerRadius = Math.min(windowWidth, windowHeight) * (isDesktop ? 0.2 : isMobile ? 0.18 : 0.22);
         
         // Top-left corner to keep clean (for navbar/menu)
-        const topLeftWidth = windowWidth * 0.3;
-        const topLeftHeight = windowHeight * 0.25;
+        const topLeftWidth = windowWidth * (isMobile ? 0.25 : 0.3);
+        const topLeftHeight = windowHeight * (isMobile ? 0.2 : 0.25);
         
         // Create strategic positions around the screen
         const positions = [];
@@ -383,22 +383,24 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
             { x: windowWidth * 0.15, y: windowHeight * 0.45 }
           );
         } else if (isMobile) {
-          // Mobile positions - more compact but still spread
+          // Mobile positions - utilize corners and side middle spaces
           positions.push(
-            // Top-right
-            { x: windowWidth * 0.8, y: windowHeight * 0.12 },
-            { x: windowWidth * 0.9, y: windowHeight * 0.25 },
+            // Top-right corner
+            { x: windowWidth * 0.85, y: windowHeight * 0.1 },
             
-            // Right side
-            { x: windowWidth * 0.88, y: windowHeight * 0.45 },
-            { x: windowWidth * 0.85, y: windowHeight * 0.65 },
+            // Right side middle
+            { x: windowWidth * 0.9, y: windowHeight * 0.35 },
+            { x: windowWidth * 0.88, y: windowHeight * 0.65 },
             
-            // Bottom
-            { x: windowWidth * 0.6, y: windowHeight * 0.88 },
-            { x: windowWidth * 0.2, y: windowHeight * 0.85 },
+            // Bottom-right corner
+            { x: windowWidth * 0.8, y: windowHeight * 0.9 },
             
-            // Left side
-            { x: windowWidth * 0.12, y: windowHeight * 0.6 }
+            // Bottom-left corner
+            { x: windowWidth * 0.15, y: windowHeight * 0.85 },
+            
+            // Left side middle
+            { x: windowWidth * 0.05, y: windowHeight * 0.6 },
+            { x: windowWidth * 0.08, y: windowHeight * 0.4 }
           );
         } else {
           // Tablet positions
