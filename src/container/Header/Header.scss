@@ -63,6 +63,8 @@
     align-items: flex-end;
     flex-direction: column;
     margin-top: 30px;
+    position: relative;
+    z-index: 5; // Above planets but below modals
   
     .badge-cmp,
     .tag-cmp {
@@ -358,9 +360,15 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 5; // Above background, below navbar
+    z-index: 1; // Behind profile image and content
     pointer-events: none; // Allow clicking through to content below
     overflow: hidden;
+    
+    // Allow pointer events for modals
+    .planet-modal-overlay {
+      pointer-events: auto;
+      z-index: 10000;
+    }
   }
 
   // Individual planetary circles
@@ -372,46 +380,114 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-    pointer-events: auto; // Allow interaction with circles
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    
+    // Planet-like 3D appearance with better shadows
+    background: radial-gradient(circle at 30% 30%, 
+                rgba(255, 255, 255, 0.9), 
+                rgba(255, 255, 255, 0.7), 
+                rgba(0, 0, 0, 0.1));
+    
+    // Add subtle planetary atmosphere glow
+    &::before {
+      content: '';
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      background: inherit;
+      border-radius: 50%;
+      opacity: 0.4;
+      z-index: -1;
+      filter: blur(6px);
+      transition: all 0.3s ease;
+    }
 
-    &:hover {
-      transform: scale(1.1) !important;
+    // Hover state
+    &.hovered, &:hover {
       z-index: 15;
-      border-color: rgba(255, 255, 255, 0.3);
+      
+      &::before {
+        opacity: 0.8;
+        filter: blur(12px);
+        top: -6px;
+        left: -6px;
+        right: -6px;
+        bottom: -6px;
+      }
+    }
+
+    // Selected state
+    &.selected {
+      z-index: 16;
+      
+      &::before {
+        opacity: 0.9;
+        filter: blur(15px);
+        top: -8px;
+        left: -8px;
+        right: -8px;
+        bottom: -8px;
+      }
     }
 
     img {
-      width: 60%;
-      height: 60%;
+      width: 55%;
+      height: 55%;
       object-fit: contain;
       user-select: none;
       pointer-events: none;
-    }
-
-    // Add subtle rotation for planetary effect
-    animation: planetaryRotate 20s linear infinite;
-
-    &:nth-child(odd) {
-      animation: planetaryRotate 25s linear infinite reverse;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      transition: all 0.3s ease;
     }
 
     // Smaller sizes on mobile to prevent cutoff
     @media screen and (max-width: 450px) {
-      &:hover {
-        transform: scale(1.05) !important; // Less scaling on mobile
+      img {
+        width: 60%;
+        height: 60%;
       }
     }
   }
 
-  // Planetary rotation animation
-  @keyframes planetaryRotate {
-    from {
-      transform: rotate(0deg);
+  // Planet tooltip
+  .planet-tooltip {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: '50%';
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 6px solid rgba(0, 0, 0, 0.9);
     }
-    to {
-      transform: rotate(360deg);
+  }
+
+  // Kepler's motion is now handled in JavaScript for accurate physics
+
+  // Collision effect animations
+  .collision-effect {
+    .collision-shockwave {
+      transition: all 0.3s ease-out;
+      filter: blur(1px);
+    }
+    
+    .collision-particle {
+      transition: all 0.2s ease-out;
+      filter: blur(0.5px);
+    }
+    
+    .collision-flash {
+      transition: all 0.1s ease-out;
+      filter: blur(2px);
     }
   }
   
@@ -427,7 +503,8 @@
     img {
       width: 100%;
       object-fit: contain;
-      z-index: 1;
+      z-index: 5; // Above planets but below modals
+      position: relative;
     }
   
     .overlay_circle {

@@ -241,6 +241,9 @@ const MeteorEffect = ({ intensity = 'normal' }) => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
+    
+    // Expose meteor data globally for collision detection
+    window.meteorsData = meteorsRef.current;
     // Use appropriate background clear color based on theme
     ctx.fillStyle = isDarkTheme 
       ? 'rgba(0, 0, 0, 0.1)' // Dark overlay for dark theme
