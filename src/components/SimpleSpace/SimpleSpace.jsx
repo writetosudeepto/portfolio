@@ -2697,89 +2697,126 @@ function FlyingBeerBottle({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1
     <group ref={beerRef} position={position}>
       {/* Realistic Beer Bottle */}
       <group ref={bottleRef}>
-        {/* Main bottle body - glass */}
+        {/* Main bottle body - more realistic proportions */}
         <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[size * 0.32, size * 0.38, size * 1.1, 16]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.3} />
+          <cylinderGeometry args={[size * 0.25, size * 0.32, size * 1.4, 20]} />
+          <meshBasicMaterial color={colors.bottle} transparent opacity={0.25} />
         </mesh>
         
-        {/* Bottle shoulder */}
-        <mesh position={[0, size * 0.6, 0]}>
-          <cylinderGeometry args={[size * 0.15, size * 0.32, size * 0.25, 12]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.3} />
+        {/* Bottle shoulder - smoother taper */}
+        <mesh position={[0, size * 0.75, 0]}>
+          <cylinderGeometry args={[size * 0.12, size * 0.25, size * 0.15, 16]} />
+          <meshBasicMaterial color={colors.bottle} transparent opacity={0.25} />
         </mesh>
         
-        {/* Bottle neck */}
-        <mesh position={[0, size * 0.8, 0]}>
-          <cylinderGeometry args={[size * 0.1, size * 0.15, size * 0.3, 12]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.3} />
+        {/* Bottle neck - longer and thinner */}
+        <mesh position={[0, size * 0.95, 0]}>
+          <cylinderGeometry args={[size * 0.08, size * 0.12, size * 0.25, 16]} />
+          <meshBasicMaterial color={colors.bottle} transparent opacity={0.25} />
         </mesh>
         
         {/* Bottle mouth rim */}
-        <mesh position={[0, size * 0.98, 0]}>
-          <cylinderGeometry args={[size * 0.11, size * 0.11, size * 0.04, 12]} />
+        <mesh position={[0, size * 1.1, 0]}>
+          <cylinderGeometry args={[size * 0.085, size * 0.085, size * 0.03, 16]} />
           <meshBasicMaterial color={colors.bottle} transparent opacity={0.4} />
         </mesh>
         
-        {/* Beer liquid inside */}
-        <mesh position={[0, size * -0.05, 0]}>
-          <cylinderGeometry args={[size * 0.28, size * 0.34, size * 0.85, 16]} />
-          <meshBasicMaterial color={colors.liquid} transparent opacity={0.9} />
+        {/* Bottom of bottle */}
+        <mesh position={[0, size * -0.72, 0]}>
+          <cylinderGeometry args={[size * 0.28, size * 0.32, size * 0.04, 20]} />
+          <meshBasicMaterial color={colors.bottle} transparent opacity={0.4} />
         </mesh>
         
-        {/* Beer foam/head */}
-        <mesh position={[0, size * 0.45, 0]}>
-          <cylinderGeometry args={[size * 0.26, size * 0.28, size * 0.15, 12]} />
-          <meshBasicMaterial color={colors.foam} transparent opacity={0.8} />
+        {/* Beer liquid inside - adjusted for new proportions */}
+        <mesh position={[0, size * -0.1, 0]}>
+          <cylinderGeometry args={[size * 0.22, size * 0.28, size * 1.1, 20]} />
+          <meshBasicMaterial color={colors.liquid} transparent opacity={0.85} />
         </mesh>
         
-        {/* Bottle cap/cork */}
-        <mesh position={[0, size * 1.05, 0]}>
-          <cylinderGeometry args={[size * 0.12, size * 0.12, size * 0.1, 8]} />
+        {/* Beer foam/head - more realistic */}
+        <mesh position={[0, size * 0.55, 0]}>
+          <cylinderGeometry args={[size * 0.2, size * 0.22, size * 0.12, 16]} />
+          <meshBasicMaterial color={colors.foam} transparent opacity={0.9} />
+        </mesh>
+        
+        {/* Bottle cap - more detailed */}
+        <mesh position={[0, size * 1.15, 0]}>
+          <cylinderGeometry args={[size * 0.095, size * 0.095, size * 0.08, 12]} />
           <meshBasicMaterial color={colors.cap} />
         </mesh>
         
-        {/* Bottle label */}
-        <mesh position={[0, size * 0.05, size * 0.33]}>
-          <boxGeometry args={[size * 0.45, size * 0.35, size * 0.005]} />
-          <meshBasicMaterial color={colors.label} transparent opacity={0.9} />
+        {/* Cap ridges for realism */}
+        <mesh position={[0, size * 1.17, 0]}>
+          <cylinderGeometry args={[size * 0.1, size * 0.1, size * 0.02, 16]} />
+          <meshBasicMaterial color={colors.cap} />
         </mesh>
         
-        {/* Beer brand text on label */}
-        <mesh position={[0, size * 0.1, size * 0.335]}>
-          <boxGeometry args={[size * 0.3, size * 0.06, size * 0.002]} />
+        {/* Bottle label - properly positioned and sized */}
+        <mesh position={[0, size * 0.1, size * 0.27]}>
+          <boxGeometry args={[size * 0.4, size * 0.45, size * 0.005]} />
+          <meshBasicMaterial color={colors.label} transparent opacity={0.95} />
+        </mesh>
+        
+        {/* Beer brand text on label - more realistic */}
+        <mesh position={[0, size * 0.2, size * 0.275]}>
+          <boxGeometry args={[size * 0.32, size * 0.08, size * 0.002]} />
           <meshBasicMaterial color={colors.liquid} />
         </mesh>
-        <mesh position={[0, size * 0.0, size * 0.335]}>
-          <boxGeometry args={[size * 0.25, size * 0.04, size * 0.002]} />
+        <mesh position={[0, size * 0.05, size * 0.275]}>
+          <boxGeometry args={[size * 0.28, size * 0.04, size * 0.002]} />
+          <meshBasicMaterial color={colors.bottle} />
+        </mesh>
+        <mesh position={[0, size * -0.05, size * 0.275]}>
+          <boxGeometry args={[size * 0.24, size * 0.03, size * 0.002]} />
           <meshBasicMaterial color={colors.liquid} />
         </mesh>
         
-        {/* Glass reflection highlights */}
-        <mesh position={[size * 0.25, size * 0.2, 0]}>
-          <boxGeometry args={[size * 0.03, size * 0.4, size * 0.02]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
+        {/* Glass reflection highlights - more realistic placement */}
+        <mesh position={[size * 0.2, size * 0.15, 0]}>
+          <boxGeometry args={[size * 0.02, size * 0.6, size * 0.015]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
         </mesh>
-        <mesh position={[size * -0.25, size * 0.2, 0]}>
-          <boxGeometry args={[size * 0.03, size * 0.4, size * 0.02]} />
+        <mesh position={[size * -0.15, size * 0.1, 0]}>
+          <boxGeometry args={[size * 0.015, size * 0.4, size * 0.01]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={0.3} />
+        </mesh>
+        
+        {/* Additional glass shine */}
+        <mesh position={[size * 0.18, size * -0.2, 0]}>
+          <boxGeometry args={[size * 0.02, size * 0.3, size * 0.01]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.25} />
         </mesh>
       </group>
       
       {/* Extra foam bubbles escaping */}
       <group ref={foamRef}>
-        {/* Foam bubbles floating above */}
-        {[...Array(3)].map((_, i) => (
+        {/* Foam bubbles floating above bottle */}
+        {[...Array(4)].map((_, i) => (
           <mesh 
             key={i} 
             position={[
-              (Math.random() - 0.5) * size * 0.2, 
-              size * (0.6 + i * 0.08), 
-              (Math.random() - 0.5) * size * 0.2
+              (Math.random() - 0.5) * size * 0.15, 
+              size * (0.7 + i * 0.12), 
+              (Math.random() - 0.5) * size * 0.15
             ]}
           >
-            <sphereGeometry args={[size * 0.01, 4, 4]} />
-            <meshBasicMaterial color={colors.foam} transparent opacity={0.7} />
+            <sphereGeometry args={[size * 0.008 * (1 + i * 0.2), 6, 6]} />
+            <meshBasicMaterial color={colors.foam} transparent opacity={0.6 - i * 0.1} />
+          </mesh>
+        ))}
+        
+        {/* Small bubbles inside the beer */}
+        {[...Array(3)].map((_, i) => (
+          <mesh 
+            key={`inside-${i}`} 
+            position={[
+              (Math.random() - 0.5) * size * 0.15, 
+              size * (0.2 - i * 0.15), 
+              (Math.random() - 0.5) * size * 0.15
+            ]}
+          >
+            <sphereGeometry args={[size * 0.005, 4, 4]} />
+            <meshBasicMaterial color={colors.foam} transparent opacity={0.4} />
           </mesh>
         ))}
       </group>
@@ -3342,7 +3379,6 @@ function FlyingAstronaut({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
     </group>
   );
 }
-
 
 // Simple floating asteroids
 function SimpleAsteroid({ position = [0, 0, 0], velocity = [0, -0.2, 0], size = 0.5 }) {

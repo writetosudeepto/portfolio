@@ -820,3 +820,131 @@
     transform: translateY(-1.5px) scaleY(0.3);
   }
 }
+
+// Fire flicker animation for galaxy cores
+@keyframes fire-flicker {
+  0% { 
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    opacity: 0.9;
+  }
+  25% { 
+    transform: translate(-50%, -50%) scale(1.05) rotate(2deg);
+    opacity: 1;
+  }
+  50% { 
+    transform: translate(-50%, -50%) scale(0.95) rotate(-1deg);
+    opacity: 0.85;
+  }
+  75% { 
+    transform: translate(-50%, -50%) scale(1.02) rotate(1deg);
+    opacity: 0.95;
+  }
+  100% { 
+    transform: translate(-50%, -50%) scale(0.98) rotate(-2deg);
+    opacity: 0.88;
+  }
+}
+
+// Flat spinning fire disk styles
+.flat-fire-disk {
+  transform-style: preserve-3d;
+  animation: disk-wobble 8s ease-in-out infinite;
+}
+
+@keyframes disk-wobble {
+  0%, 100% {
+    transform: perspective(500px) rotateX(60deg) rotateY(0deg);
+  }
+  25% {
+    transform: perspective(500px) rotateX(70deg) rotateY(5deg);
+  }
+  50% {
+    transform: perspective(500px) rotateX(50deg) rotateY(0deg);
+  }
+  75% {
+    transform: perspective(500px) rotateX(70deg) rotateY(-5deg);
+  }
+}
+
+// Enhanced fire flicker for flat disks
+@keyframes disk-fire-flicker {
+  0% { 
+    transform: translate(-50%, -50%) scaleX(1) scaleY(1);
+    opacity: 0.9;
+  }
+  25% { 
+    transform: translate(-50%, -50%) scaleX(1.1) scaleY(0.9);
+    opacity: 1;
+  }
+  50% { 
+    transform: translate(-50%, -50%) scaleX(0.9) scaleY(1.1);
+    opacity: 0.85;
+  }
+  75% { 
+    transform: translate(-50%, -50%) scaleX(1.05) scaleY(0.95);
+    opacity: 0.95;
+  }
+  100% { 
+    transform: translate(-50%, -50%) scaleX(0.95) scaleY(1.05);
+    opacity: 0.88;
+  }
+}
+
+// Flying guitar styles
+.flying-guitar {
+  animation: guitar-rock 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes guitar-rock {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  100% {
+    transform: rotate(2deg) scale(1.02);
+  }
+}
+
+// Electric pulse animation
+@keyframes electric-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.2;
+  }
+}
+
+// Guitar type specific animations
+.v-guitar {
+  animation: guitar-rock 0.3s ease-in-out infinite alternate, 
+             v-guitar-spin 4s linear infinite;
+}
+
+.strat-guitar {
+  animation: guitar-rock 0.4s ease-in-out infinite alternate,
+             strat-guitar-wobble 3s ease-in-out infinite;
+}
+
+@keyframes v-guitar-spin {
+  0% {
+    filter: hue-rotate(0deg) drop-shadow(0 0 10px currentColor);
+  }
+  100% {
+    filter: hue-rotate(360deg) drop-shadow(0 0 20px currentColor);
+  }
+}
+
+@keyframes strat-guitar-wobble {
+  0%, 100% {
+    transform: perspective(500px) rotateY(0deg);
+  }
+  50% {
+    transform: perspective(500px) rotateY(10deg);
+  }
+}

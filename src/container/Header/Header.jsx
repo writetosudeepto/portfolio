@@ -23,6 +23,8 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
   const meteorsRef = useRef([]);
   const [collisionEffects, setCollisionEffects] = useState([]);
   const [hoveredPlanet, setHoveredPlanet] = useState(null);
+  const [supernovas, setSupernovas] = useState([]);
+  const [flyingGuitars, setFlyingGuitars] = useState([]);
   
   // Define skills as planets with orbital distances and size scaling
   const skillsData = [
@@ -131,6 +133,98 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
   };
 
   const [circles, setCircles] = useState([]);
+
+
+  // Create supernova explosion
+  const createSupernova = (windowWidth, windowHeight) => {
+    // Position supernovas away from center and main content areas
+    const safePositions = [
+      { x: windowWidth * 0.1, y: windowHeight * 0.2 },   // Top-left corner
+      { x: windowWidth * 0.9, y: windowHeight * 0.15 },  // Top-right corner
+      { x: windowWidth * 0.05, y: windowHeight * 0.8 },  // Bottom-left corner
+      { x: windowWidth * 0.85, y: windowHeight * 0.75 }, // Bottom-right area
+    ];
+    
+    const position = safePositions[Math.floor(Math.random() * safePositions.length)];
+    
+    return {
+      id: `supernova-${Date.now()}-${Math.random()}`,
+      x: position.x,
+      y: position.y,
+      size: 0, // Starts small
+      maxSize: 150 + Math.random() * 100, // 150-250px max
+      expansionSpeed: 2 + Math.random() * 3, // Expansion rate
+      intensity: 0.8 + Math.random() * 0.2, // 0.8-1.0 brightness
+      color: Math.random() > 0.5 ? 
+        `hsl(${30 + Math.random() * 30}, 100%, 70%)` : // Orange-yellow
+        `hsl(${180 + Math.random() * 60}, 80%, 60%)`,   // Blue-cyan
+      phase: 0, // 0: expansion, 1: fade
+      life: 1.0,
+      particles: [], // Explosion particles
+      shockwaveRadius: 0,
+    };
+  };
+
+  // Create beautiful realistic electric guitar
+  const createFlyingGuitar = (windowWidth, windowHeight) => {
+    // Guitar spawn positions - from far edges of screen
+    const spawnPositions = [
+      { x: -150, y: windowHeight * 0.3, direction: 1 },   // From left edge
+      { x: windowWidth + 150, y: windowHeight * 0.4, direction: -1 }, // From right edge
+      { x: windowWidth * 0.2, y: -150, direction: 1 },    // From top left
+      { x: windowWidth * 0.8, y: windowHeight + 150, direction: -1 }, // From bottom right
+    ];
+    
+    const spawn = spawnPositions[Math.floor(Math.random() * spawnPositions.length)];
+    const guitarTypes = ['les-paul', 'stratocaster', 'telecaster', 'flying-v'];
+    const guitarType = guitarTypes[Math.floor(Math.random() * guitarTypes.length)];
+    
+    // Realistic guitar color schemes
+    const colorSchemes = [
+      { body: '#8B4513', neck: '#654321', pickguard: '#000000', name: 'Sunburst' },
+      { body: '#000000', neck: '#8B4513', pickguard: '#FFFFFF', name: 'Black' },
+      { body: '#FF4500', neck: '#654321', pickguard: '#000000', name: 'Orange' },
+      { body: '#4169E1', neck: '#8B4513', pickguard: '#FFFFFF', name: 'Blue' },
+      { body: '#DC143C', neck: '#654321', pickguard: '#000000', name: 'Red' },
+      { body: '#FFFFFF', neck: '#8B4513', pickguard: '#000000', name: 'White' },
+    ];
+    
+    const colorScheme = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
+    
+    return {
+      id: `guitar-${Date.now()}-${Math.random()}`,
+      type: guitarType,
+      x: spawn.x,
+      y: spawn.y,
+      targetX: windowWidth * (0.2 + Math.random() * 0.6), // Wider target area
+      targetY: windowHeight * (0.2 + Math.random() * 0.6),
+      size: 120 + Math.random() * 80, // 120-200px guitars (larger for detail)
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.05, // Slower, more graceful spinning
+      speed: 0.8 + Math.random() * 1.2, // Slower, more elegant movement
+      zPosition: -300 - Math.random() * 400, // Start further back
+      zSpeed: 2 + Math.random() * 3, // Slower approach
+      direction: spawn.direction,
+      // Realistic guitar colors
+      bodyColor: colorScheme.body,
+      neckColor: colorScheme.neck,
+      pickguardColor: colorScheme.pickguard,
+      colorName: colorScheme.name,
+      // Hardware colors
+      hardwareColor: Math.random() > 0.5 ? '#C0C0C0' : '#FFD700', // Chrome or gold
+      stringColor: '#C0C0C0',
+      // Realistic effects
+      glowIntensity: 0.3 + Math.random() * 0.4, // Subtle glow
+      life: 1.0,
+      // Movement physics
+      oscillation: Math.random() * Math.PI * 2, // For natural floating motion
+      oscillationSpeed: 0.01 + Math.random() * 0.02,
+      // Electric effects
+      electricPulse: 0.3 + Math.random() * 0.4,
+      sparkles: [],
+      trailLength: 3 + Math.random() * 5,
+    };
+  };
 
   // Calculate orbital velocity and physics data
   const calculatePlanetPhysics = (circle) => {
@@ -253,72 +347,107 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
       
-      // Get garland positions around screen edges (avoiding center)
-      const getGarlandPositions = () => {
+      // Create spread positions across screen, avoiding center and top-left corner
+      const getSpreadPositions = () => {
         const isDesktop = windowWidth > 1200;
         const isMobile = windowWidth <= 768;
         
+        // Define safe zones to avoid
+        const centerX = windowWidth * 0.5;
+        const centerY = windowHeight * 0.5;
+        const centerRadius = Math.min(windowWidth, windowHeight) * (isDesktop ? 0.2 : isMobile ? 0.25 : 0.22);
+        
+        // Top-left corner to keep clean (for navbar/menu)
+        const topLeftWidth = windowWidth * 0.3;
+        const topLeftHeight = windowHeight * 0.25;
+        
+        // Create strategic positions around the screen
+        const positions = [];
+        
         if (isDesktop) {
-          // Desktop: Respect boundaries - below navbar, outside tickets, away from center profile
-          return [
-            { x: windowWidth * 0.85, y: windowHeight * 0.2 },   // Top-right (below navbar, outside ticket area)
-            { x: windowWidth * 0.92, y: windowHeight * 0.4 },   // Right-upper (safe from ticket zone)
-            { x: windowWidth * 0.92, y: windowHeight * 0.65 },  // Right-lower  
-            { x: windowWidth * 0.82, y: windowHeight * 0.85 },  // Bottom-right (inside screen bounds)
-            { x: windowWidth * 0.25, y: windowHeight * 0.85 },  // Bottom-left (inside screen bounds)
-            { x: windowWidth * 0.08, y: windowHeight * 0.7 },   // Left-lower (inside screen, away from center)
-            { x: windowWidth * 0.08, y: windowHeight * 0.35 },  // Left-upper (below navbar, away from center)
-          ];
+          // Desktop positions - spread around edges, avoiding center and top-left
+          positions.push(
+            // Top-right area
+            { x: windowWidth * 0.85, y: windowHeight * 0.15 },
+            { x: windowWidth * 0.9, y: windowHeight * 0.3 },
+            
+            // Right side
+            { x: windowWidth * 0.92, y: windowHeight * 0.6 },
+            
+            // Bottom area
+            { x: windowWidth * 0.75, y: windowHeight * 0.85 },
+            { x: windowWidth * 0.25, y: windowHeight * 0.9 },
+            
+            // Left side (avoiding top-left)
+            { x: windowWidth * 0.08, y: windowHeight * 0.7 },
+            { x: windowWidth * 0.15, y: windowHeight * 0.45 }
+          );
         } else if (isMobile) {
-          // Mobile: Spread around entire screen perimeter
-          return [
-            { x: windowWidth * 0.2, y: windowHeight * 0.15 },  // Top-left
-            { x: windowWidth * 0.8, y: windowHeight * 0.15 },  // Top-right
-            { x: windowWidth * 0.9, y: windowHeight * 0.4 },   // Right-upper
-            { x: windowWidth * 0.9, y: windowHeight * 0.6 },   // Right-lower
-            { x: windowWidth * 0.8, y: windowHeight * 0.85 },  // Bottom-right
-            { x: windowWidth * 0.2, y: windowHeight * 0.85 },  // Bottom-left
-            { x: windowWidth * 0.1, y: windowHeight * 0.4 },   // Left-upper
-          ];
+          // Mobile positions - more compact but still spread
+          positions.push(
+            // Top-right
+            { x: windowWidth * 0.8, y: windowHeight * 0.12 },
+            { x: windowWidth * 0.9, y: windowHeight * 0.25 },
+            
+            // Right side
+            { x: windowWidth * 0.88, y: windowHeight * 0.45 },
+            { x: windowWidth * 0.85, y: windowHeight * 0.65 },
+            
+            // Bottom
+            { x: windowWidth * 0.6, y: windowHeight * 0.88 },
+            { x: windowWidth * 0.2, y: windowHeight * 0.85 },
+            
+            // Left side
+            { x: windowWidth * 0.12, y: windowHeight * 0.6 }
+          );
         } else {
-          // Tablet view
-          return [
-            { x: windowWidth * 0.2, y: windowHeight * 0.2 },   // Top-left
-            { x: windowWidth * 0.8, y: windowHeight * 0.2 },   // Top-right
-            { x: windowWidth * 0.85, y: windowHeight * 0.5 },  // Right-middle
-            { x: windowWidth * 0.8, y: windowHeight * 0.8 },   // Bottom-right
-            { x: windowWidth * 0.2, y: windowHeight * 0.8 },   // Bottom-left
-            { x: windowWidth * 0.15, y: windowHeight * 0.5 },  // Left-middle
-            { x: windowWidth * 0.5, y: windowHeight * 0.15 },  // Top-center
-          ];
+          // Tablet positions
+          positions.push(
+            // Top-right area
+            { x: windowWidth * 0.82, y: windowHeight * 0.18 },
+            { x: windowWidth * 0.88, y: windowHeight * 0.35 },
+            
+            // Right side
+            { x: windowWidth * 0.9, y: windowHeight * 0.6 },
+            
+            // Bottom area
+            { x: windowWidth * 0.7, y: windowHeight * 0.87 },
+            { x: windowWidth * 0.3, y: windowHeight * 0.88 },
+            
+            // Left side
+            { x: windowWidth * 0.1, y: windowHeight * 0.65 },
+            { x: windowWidth * 0.18, y: windowHeight * 0.4 }
+          );
         }
+        
+        return positions;
       };
       
-      // Calculate 3D garland movement radius around each position
-      const calculateGarlandRadius = (isDesktop) => {
+      // Calculate orbital movement radius around each ring position
+      const calculateOrbitalRadius = (isDesktop) => {
         if (isDesktop) {
-          return Math.min(windowWidth, windowHeight) * 0.06; // Small orbits around each garland point
+          return Math.min(windowWidth, windowHeight) * 0.03; // Small orbits around each ring position
         } else {
-          return Math.min(windowWidth, windowHeight) * 0.08; // Slightly larger for mobile
+          return Math.min(windowWidth, windowHeight) * 0.04; // Slightly larger for mobile
         }
       };
 
-      // Get garland positions and create 3D floating motion
-      const garlandPositions = getGarlandPositions();
+      // Get spread positions and create orbital motion
+      const spreadPositions = getSpreadPositions();
       const isDesktop = windowWidth > 1200;
-      const garlandRadius = calculateGarlandRadius(isDesktop);
+      const orbitalRadius = calculateOrbitalRadius(isDesktop);
       
       const initialCircles = skillsData.map((skill, index) => {
         // Calculate planet size with 3D depth effect
         const planetSize = calculatePlanetSize(skill.baseSize, skill.orbitalDistance, isDesktop);
         
-        // Assign each planet to a garland position
-        const garlandPoint = garlandPositions[index % garlandPositions.length];
-        const centerX = garlandPoint.x;
-        const centerY = garlandPoint.y;
+        // Get spread position for this planet
+        const spreadPoint = spreadPositions[index % spreadPositions.length];
+        const centerX = spreadPoint.x;
+        const centerY = spreadPoint.y;
         
-        // Create small circular motion around each garland point
-        const localRadius = garlandRadius * (0.5 + Math.random() * 0.5); // Vary radius for 3D effect
+        // Create small circular motion around each spread position
+        const localRadius = orbitalRadius * (0.8 + Math.random() * 0.4); // Vary radius for 3D effect
         const eccentricity = 0.1 + Math.random() * 0.2; // Slight elliptical motion
         const semiMajorAxis = localRadius;
         const semiMinorAxis = semiMajorAxis * Math.sqrt(1 - eccentricity * eccentricity);
@@ -390,6 +519,16 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
       });
 
       setCircles(initialCircles);
+      
+      // Initialize first supernova
+      setSupernovas([createSupernova(windowWidth, windowHeight)]);
+      
+      // Initialize flying guitars
+      const initialGuitars = [];
+      for (let i = 0; i < 2; i++) {
+        initialGuitars.push(createFlyingGuitar(windowWidth, windowHeight));
+      }
+      setFlyingGuitars(initialGuitars);
     };
 
     // Initialize after a short delay to ensure proper container dimensions
@@ -565,6 +704,104 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
         return updatedCircles;
       });
 
+
+      // Update supernovas
+      setSupernovas(prevSupernovas => {
+        const updated = prevSupernovas.map(supernova => {
+          if (supernova.phase === 0) {
+            // Expansion phase
+            const newSize = supernova.size + supernova.expansionSpeed;
+            const newShockwave = supernova.shockwaveRadius + supernova.expansionSpeed * 1.5;
+            
+            if (newSize >= supernova.maxSize) {
+              return {
+                ...supernova,
+                size: supernova.maxSize,
+                shockwaveRadius: newShockwave,
+                phase: 1, // Switch to fade phase
+                life: 1.0,
+              };
+            }
+            
+            return {
+              ...supernova,
+              size: newSize,
+              shockwaveRadius: newShockwave,
+            };
+          } else {
+            // Fade phase
+            return {
+              ...supernova,
+              life: Math.max(0, supernova.life - 0.008),
+              intensity: supernova.intensity * supernova.life,
+            };
+          }
+        }).filter(supernova => supernova.life > 0);
+
+        // Randomly create new supernovas
+        if (Math.random() < 0.0005 && updated.length < 2) { // Very rare, max 2 at once
+          const windowWidth = window.innerWidth;
+          const windowHeight = window.innerHeight;
+          updated.push(createSupernova(windowWidth, windowHeight));
+        }
+
+        return updated;
+      });
+
+      // Update flying guitars with realistic movement
+      setFlyingGuitars(prevGuitars => {
+        const updated = prevGuitars.map(guitar => {
+          // Graceful curved movement toward target
+          const dx = guitar.targetX - guitar.x;
+          const dy = guitar.targetY - guitar.y;
+          const newX = guitar.x + dx * 0.008 + guitar.direction * guitar.speed;
+          
+          // Natural floating oscillation
+          const oscillationY = Math.sin(Date.now() * 0.001 * guitar.oscillationSpeed + guitar.oscillation) * 15;
+          const newY = guitar.y + dy * 0.008 + oscillationY;
+          
+          // Smooth Z-axis movement toward user
+          const newZPosition = guitar.zPosition + guitar.zSpeed;
+          
+          // Gentle rotation
+          const newRotation = guitar.rotation + guitar.rotationSpeed;
+          
+          // Perspective scaling with smooth transitions
+          const perspective = Math.max(0.3, 1 + newZPosition / 250);
+          const scaledSize = guitar.size * perspective;
+          
+          // Update oscillation for next frame
+          const newOscillation = guitar.oscillation + guitar.oscillationSpeed;
+          
+          // Remove guitar if it goes too far forward or off screen
+          if (newZPosition > 150 || newX < -250 || newX > window.innerWidth + 250 ||
+              newY < -250 || newY > window.innerHeight + 250) {
+            return null;
+          }
+          
+          return {
+            ...guitar,
+            x: newX,
+            y: newY,
+            zPosition: newZPosition,
+            rotation: newRotation,
+            scaledSize: scaledSize,
+            perspective: perspective,
+            oscillation: newOscillation,
+            life: Math.max(0, guitar.life - 0.0005), // Slower fade for longer visibility
+          };
+        }).filter(guitar => guitar !== null && guitar.life > 0);
+
+        // Spawn new guitars less frequently for quality over quantity
+        if (Math.random() < 0.001 && updated.length < 3) { // Even rarer spawn, max 3 guitars
+          const windowWidth = window.innerWidth;
+          const windowHeight = window.innerHeight;
+          updated.push(createFlyingGuitar(windowWidth, windowHeight));
+        }
+
+        return updated;
+      });
+
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -594,6 +831,189 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
 
   return (
     <div ref={containerRef} className="planetary-skills-container">
+
+      {/* Render Supernovas */}
+      {supernovas.map((supernova) => (
+        <div
+          key={supernova.id}
+          className="supernova"
+          style={{
+            position: 'absolute',
+            left: supernova.x - supernova.size / 2,
+            top: supernova.y - supernova.size / 2,
+            width: supernova.size,
+            height: supernova.size,
+            pointerEvents: 'none',
+            zIndex: 2,
+          }}
+        >
+          {/* Main Explosion */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '100%',
+              height: '100%',
+              background: `radial-gradient(circle, ${supernova.color}, transparent 70%)`,
+              borderRadius: '50%',
+              transform: 'translate(-50%, -50%)',
+              opacity: supernova.intensity,
+              boxShadow: `0 0 ${supernova.size}px ${supernova.color}`,
+            }}
+          />
+          {/* Shockwave Ring */}
+          {supernova.shockwaveRadius > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                width: supernova.shockwaveRadius * 2,
+                height: supernova.shockwaveRadius * 2,
+                border: `2px solid ${supernova.color}`,
+                borderRadius: '50%',
+                transform: 'translate(-50%, -50%)',
+                opacity: supernova.life * 0.5,
+              }}
+            />
+          )}
+        </div>
+      ))}
+
+      {/* Render Flying Electric Guitars */}
+      {flyingGuitars.map((guitar) => (
+        <div
+          key={guitar.id}
+          className={`flying-guitar ${guitar.type}`}
+          style={{
+            position: 'absolute',
+            left: guitar.x - guitar.scaledSize / 2,
+            top: guitar.y - guitar.scaledSize / 2,
+            width: guitar.scaledSize,
+            height: guitar.scaledSize,
+            transform: `rotate(${guitar.rotation}rad) scale(${guitar.perspective})`,
+            opacity: guitar.life * (0.7 + guitar.electricPulse * 0.3),
+            pointerEvents: 'none',
+            zIndex: 3,
+            filter: `blur(${Math.max(0, 2 - guitar.perspective * 2)}px) drop-shadow(0 0 ${guitar.scaledSize * 0.3}px ${guitar.bodyColor})`,
+          }}
+        >
+          {/* Guitar Body */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '30%',
+              left: '50%',
+              width: guitar.type === 'v-guitar' ? '70%' : '50%',
+              height: guitar.type === 'v-guitar' ? '60%' : '45%',
+              background: `linear-gradient(135deg, ${guitar.bodyColor}, ${guitar.bodyColor}dd)`,
+              transform: 'translate(-50%, -50%)',
+              clipPath: guitar.type === 'v-guitar' ? 
+                'polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)' : // V shape
+                'ellipse(50% 50%)', // Strat body shape
+              boxShadow: `inset 0 0 20px rgba(0,0,0,0.3), 0 0 ${guitar.scaledSize * 0.2}px ${guitar.bodyColor}`,
+            }}
+          />
+          
+          {/* Guitar Neck */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '5%',
+              left: '50%',
+              width: '8%',
+              height: '70%',
+              background: `linear-gradient(180deg, ${guitar.neckColor}, ${guitar.neckColor}aa)`,
+              transform: 'translate(-50%, 0%)',
+              borderRadius: '4px',
+              boxShadow: `inset 0 0 5px rgba(0,0,0,0.5)`,
+            }}
+          />
+          
+          {/* Guitar Headstock */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '0%',
+              left: '50%',
+              width: '15%',
+              height: '20%',
+              background: guitar.neckColor,
+              transform: 'translate(-50%, 0%)',
+              borderRadius: '3px',
+            }}
+          />
+          
+          {/* Guitar Strings */}
+          {[...Array(6)].map((_, stringIndex) => (
+            <div
+              key={`string-${stringIndex}`}
+              style={{
+                position: 'absolute',
+                top: '5%',
+                left: `${45 + stringIndex * 2}%`,
+                width: '1px',
+                height: '70%',
+                background: '#cccccc',
+                opacity: 0.8,
+                boxShadow: `0 0 2px #ffffff`,
+              }}
+            />
+          ))}
+          
+          {/* Electric Sparkles */}
+          {(guitar.sparkles || []).map((sparkle, sparkleIndex) => (
+            <div
+              key={`sparkle-${guitar.id}-${sparkleIndex}`}
+              style={{
+                position: 'absolute',
+                left: sparkle.x - guitar.x + guitar.scaledSize / 2,
+                top: sparkle.y - guitar.y + guitar.scaledSize / 2,
+                width: sparkle.size,
+                height: sparkle.size,
+                background: '#00ffff',
+                borderRadius: '50%',
+                opacity: sparkle.life,
+                boxShadow: `0 0 ${sparkle.size * 3}px #00ffff`,
+              }}
+            />
+          ))}
+          
+          {/* Electric Aura */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '120%',
+              height: '120%',
+              background: `radial-gradient(circle, transparent 40%, ${guitar.bodyColor}22 70%, transparent)`,
+              transform: 'translate(-50%, -50%)',
+              borderRadius: '50%',
+              opacity: guitar.electricPulse,
+              animation: `electric-pulse 0.2s infinite alternate`,
+            }}
+          />
+          
+          {/* Rock Trail Effect */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: `${guitar.trailLength * 20}px`,
+              height: '4px',
+              background: `linear-gradient(90deg, ${guitar.bodyColor}, transparent)`,
+              transform: 'translate(-50%, -50%) rotate(180deg)',
+              opacity: 0.6,
+              borderRadius: '2px',
+            }}
+          />
+        </div>
+      ))}
+
+      {/* Render Skill Planets */}
       {circles.map((circle) => {
         const skillData = skillsData[circle.id];
         const isHovered = hoveredPlanet === circle.id;
