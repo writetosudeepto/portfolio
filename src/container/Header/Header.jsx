@@ -17,12 +17,11 @@ const scaleVariants = {
 };
 
 // Planetary skill circles component
-const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
+const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet, hoveredPlanet, setHoveredPlanet }) => {
   const containerRef = useRef(null);
   const animationRef = useRef(null);
   const meteorsRef = useRef([]);
   const [collisionEffects, setCollisionEffects] = useState([]);
-  const [hoveredPlanet, setHoveredPlanet] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [supernovas, setSupernovas] = useState([]);
   const [flyingGuitars, setFlyingGuitars] = useState([]);
@@ -264,7 +263,7 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
     };
   };
 
-  // Handle planet click
+  // Handle planet click (desktop only)
   const handlePlanetClick = (circle, skillData) => {
     const physics = calculatePlanetPhysics(circle);
     setSelectedPlanet({
@@ -272,6 +271,23 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
       physics,
       circle
     });
+    // Clear any hover state when opening modal on mobile
+    setHoveredPlanet(null);
+  };
+
+  // Handle mobile single tap to show floating title
+  const handleMobileTap = (circle, skillData) => {
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) return;
+
+    // Single tap - show floating title
+    if (hoveredPlanet === circle.id) {
+      // If already showing, hide it
+      setHoveredPlanet(null);
+    } else {
+      // Show floating title
+      setHoveredPlanet(circle.id);
+    }
   };
 
   // Handle planet hover
@@ -850,6 +866,7 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
     return () => clearInterval(interval);
   }, []);
 
+
   return (
     <div ref={containerRef} className="planetary-skills-container">
 
@@ -1065,9 +1082,11 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
               height: circle.size,
               transform: `
                 scale(${
-                  (isHovered ? 1.3 : 
-                  isSelected ? 1.2 : 
-                  circle.collisionEffect > 0 ? 1 + circle.collisionEffect * 0.02 : 1) * depthScale
+                  // No scaling on mobile, only on desktop
+                  isMobile ? depthScale :
+                  (isHovered ? 1.05 : 
+                  isSelected ? 1.03 : 
+                  circle.collisionEffect > 0 ? 1 + circle.collisionEffect * 0.01 : 1) * depthScale
                 })
                 rotate(${circle.rotationAngle || 0}rad)
               `,
@@ -1092,41 +1111,35 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
               userSelect: 'none',
               pointerEvents: 'auto', // Force pointer events
             }}
-            whileInView={{ scale: [0, 1], opacity: [0, 1] }}
+            whileInView={isMobile ? { opacity: [0, 1] } : { scale: [0, 1], opacity: [0, 1] }}
             transition={{ duration: 0.8, delay: circle.id * 0.15 }}
             onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handlePlanetClick(circle, skillData);
+              // Only handle clicks on desktop
+              if (window.innerWidth > 768) {
+                e.preventDefault();
+                e.stopPropagation();
+                handlePlanetClick(circle, skillData);
+              }
             }}
-            onMouseEnter={() => handlePlanetHover(circle, skillData)}
-            onMouseLeave={handlePlanetHoverLeave}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handlePlanetHover(circle, skillData);
+            onMouseEnter={() => {
+              // Only handle mouse hover on desktop
+              if (window.innerWidth > 768) {
+                handlePlanetHover(circle, skillData);
+              }
+            }}
+            onMouseLeave={() => {
+              // Only handle mouse leave on desktop
+              if (window.innerWidth > 768) {
+                handlePlanetHoverLeave();
+              }
             }}
             onTouchEnd={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handlePlanetClick(circle, skillData);
+              handleMobileTap(circle, skillData);
             }}
-            // Additional mobile support - multiple event handlers for maximum compatibility
-            onPointerDown={(e) => {
-              if (isMobile) {
-                e.preventDefault();
-                e.stopPropagation();
-                handlePlanetClick(circle, skillData);
-              }
-            }}
-            onMouseDown={(e) => {
-              if (isMobile) {
-                e.preventDefault();
-                e.stopPropagation();
-                handlePlanetClick(circle, skillData);
-              }
-            }}
-            whileHover={{ scale: isMobile ? 1.2 : 1.3 }}
-            whileTap={{ scale: isMobile ? 1.1 : 1.2 }}
+            whileHover={isMobile ? {} : { scale: 1.05 }}
+            whileTap={isMobile ? {} : { scale: 1 }}
           >
             <img 
               src={circle.image} 
@@ -1142,6 +1155,32 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
             {skillData?.name && (isHovered || isSelected) && (
               <div
                 className={`spacecraft-label ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Floating title clicked!'); // Debug log
+                  // Open modal when clicking floating title
+                  const physics = calculatePlanetPhysics(circle);
+                  setSelectedPlanet({
+                    ...skillData,
+                    physics,
+                    circle
+                  });
+                  setHoveredPlanet(null);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Floating title touched!'); // Debug log
+                  // Open modal when touching floating title on mobile
+                  const physics = calculatePlanetPhysics(circle);
+                  setSelectedPlanet({
+                    ...skillData,
+                    physics,
+                    circle
+                  });
+                  setHoveredPlanet(null);
+                }}
                 style={{
                   position: 'absolute',
                   bottom: `-${circle.size * 0.8}px`,
@@ -1166,12 +1205,26 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
                     ? '0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.1)'
                     : '0 0 15px rgba(255, 136, 0, 0.5), inset 0 0 10px rgba(255, 136, 0, 0.1)',
                   backdropFilter: 'blur(5px)',
-                  zIndex: 10000,
-                  pointerEvents: 'none',
+                  zIndex: 99999, // Increased z-index to ensure it's on top
+                  pointerEvents: 'auto', // Enable pointer events for clicking
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   animation: isDarkMode ? 'spacecraft-glow-dark 2s ease-in-out infinite alternate' : 'spacecraft-glow-light-blue 2s ease-in-out infinite alternate',
+                  cursor: 'pointer', // Show it's clickable
+                  transition: 'all 0.3s ease', // Add smooth transition
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateX(-50%) scale(1.05)';
+                  e.target.style.boxShadow = isDarkMode 
+                    ? '0 0 25px rgba(0, 255, 255, 0.8), inset 0 0 15px rgba(0, 255, 255, 0.2)'
+                    : '0 0 25px rgba(255, 136, 0, 0.8), inset 0 0 15px rgba(255, 136, 0, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateX(-50%) scale(1)';
+                  e.target.style.boxShadow = isDarkMode 
+                    ? '0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.1)'
+                    : '0 0 15px rgba(255, 136, 0, 0.5), inset 0 0 10px rgba(255, 136, 0, 0.1)';
                 }}
               >
                 <div style={{ 
@@ -1358,6 +1411,33 @@ const PlanetarySkillCircles = ({ selectedPlanet, setSelectedPlanet }) => {
 
 const Header = () => {
   const [selectedPlanet, setSelectedPlanet] = useState(null);
+  const [hoveredPlanet, setHoveredPlanet] = useState(null);
+
+  // Handle click outside planets to clear hover state on mobile
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Only handle this on mobile devices
+      const isMobile = window.innerWidth <= 768;
+      if (!isMobile) return;
+      
+      // Check if the click was on a planet element
+      const clickedOnPlanet = event.target.closest('.planetary-circle');
+      
+      // If not clicking on a planet and not in modal, clear hover state
+      if (!clickedOnPlanet && !selectedPlanet && hoveredPlanet) {
+        setHoveredPlanet(null);
+      }
+    };
+
+    // Add event listener for touch events and clicks
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [hoveredPlanet, selectedPlanet]);
 
   return (
     <div className="app__header app__flex">
@@ -1387,7 +1467,9 @@ const Header = () => {
       <div className="app__header-circles">
         <PlanetarySkillCircles 
           selectedPlanet={selectedPlanet} 
-          setSelectedPlanet={setSelectedPlanet} 
+          setSelectedPlanet={setSelectedPlanet}
+          hoveredPlanet={hoveredPlanet}
+          setHoveredPlanet={setHoveredPlanet}
         />
       </div>
 
@@ -1398,7 +1480,10 @@ const Header = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={() => setSelectedPlanet(null)}
+          onClick={() => {
+            setSelectedPlanet(null);
+            setHoveredPlanet(null);
+          }}
           style={{
             position: 'fixed',
             top: 0,
@@ -1466,7 +1551,10 @@ const Header = () => {
                 </p>
               </div>
               <button
-                onClick={() => setSelectedPlanet(null)}
+                onClick={() => {
+                  setSelectedPlanet(null);
+                  setHoveredPlanet(null);
+                }}
                 style={{
                   marginLeft: 'auto',
                   background: 'none',
