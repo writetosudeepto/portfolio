@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { HiMenuAlt4 } from "react-icons/hi";
 import { BsSun, BsMoon } from "react-icons/bs";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,7 +30,14 @@ const PowerIcon = () => (
 const Navbar = () => {
   const [toggle, setToggle] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 80);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleOpen = () => {
     setIsClosing(false);
@@ -47,7 +54,7 @@ const Navbar = () => {
   }, [isClosing]);
 
   return (
-    <nav className="app__navbar">
+    <nav className={`app__navbar${scrolled ? " scrolled" : ""}`}>
       <div className="app__navbar-logo">
         <img src={images.logo} alt="logo" />
       </div>
