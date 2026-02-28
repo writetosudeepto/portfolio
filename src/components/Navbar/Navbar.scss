@@ -589,11 +589,10 @@
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 
-    // Scrolled: fade to near-black (same as dark mode, for contrast)
     &.scrolled {
-      background: rgba(8, 6, 20, 0.9);
-      border-color: rgba(255, 255, 255, 0.06);
-      box-shadow: 0 4px 32px rgba(0, 0, 0, 0.45);
+      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
     }
   }
 
