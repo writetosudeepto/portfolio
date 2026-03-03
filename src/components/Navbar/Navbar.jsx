@@ -14,8 +14,6 @@ const SHUTTER_STRIP_DURATION = 220; // ms per strip animation
 const PowerIcon = () => (
   <svg
     className="close-power-icon"
-    width="13"
-    height="13"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -53,6 +51,9 @@ const Navbar = () => {
     setTimeout(() => setToggle(false), shutterFillTime);
   }, [isClosing]);
 
+  // Keep power icon visible until sidebar is fully gone (onExitComplete resets isClosing)
+  const showCloseIcon = toggle || isClosing;
+
   return (
     <nav className={`app__navbar${scrolled ? " scrolled" : ""}`}>
       <div className="app__navbar-logo">
@@ -79,10 +80,42 @@ const Navbar = () => {
         </div>
 
         <div className="app__navbar-menu">
-          <HiMenuAlt4 onClick={handleOpen} />
+          {/* Hamburger ↔ power icon — morphs in place */}
+          <motion.button
+            className={`app__navbar-menu-toggle${showCloseIcon ? " is-open" : ""}${isClosing ? " is-closing" : ""}`}
+            onClick={showCloseIcon ? handleClose : handleOpen}
+            aria-label={showCloseIcon ? "Close menu" : "Open menu"}
+            disabled={isClosing}
+            whileTap={{ scale: 0.88 }}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {showCloseIcon ? (
+                <motion.span
+                  key="close-icon"
+                  className="menu-toggle-icon"
+                  initial={{ rotate: -90, opacity: 0, scale: 0.4 }}
+                  animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                  exit={{ rotate: 90, opacity: 0, scale: 0.4 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                >
+                  <PowerIcon />
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="hamburger-icon"
+                  className="menu-toggle-icon"
+                  initial={{ rotate: 90, opacity: 0, scale: 0.4 }}
+                  animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                  exit={{ rotate: -90, opacity: 0, scale: 0.4 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                >
+                  <HiMenuAlt4 />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
 
-          {/* onExitComplete resets isClosing AFTER sidebar finishes sliding out,
-              so shutter strips remain visible throughout the exit animation */}
+          {/* onExitComplete resets isClosing AFTER sidebar finishes sliding out */}
           <AnimatePresence onExitComplete={() => setIsClosing(false)}>
             {toggle && (
               <>
@@ -149,21 +182,6 @@ const Navbar = () => {
                     title="tap to close"
                   />
 
-                  <div className="app__navbar-sidebar-header">
-                    <motion.button
-                      className="app__navbar-close"
-                      onClick={handleClose}
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.93 }}
-                      disabled={isClosing}
-                    >
-                      <PowerIcon />
-                      <span className={isClosing ? "close-label closing" : "close-label"}>
-                        {isClosing ? "SHUTTING DOWN..." : "SHUTDOWN"}
-                      </span>
-                    </motion.button>
-                  </div>
-
                   <ul>
                     {navItems.map((item, i) => (
                       <motion.li
@@ -178,7 +196,6 @@ const Navbar = () => {
                         }}
                       >
                         <a href={`#${item}`} onClick={handleClose}>
-                          <span className="nav-item-index">0{i + 1}</span>
                           {item}
                         </a>
                       </motion.li>
