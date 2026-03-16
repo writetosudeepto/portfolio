@@ -5037,7 +5037,7 @@ function EyeBatCreatureInstance({ position, velocity, creatureScale = 10 }) {
     }
   }, [actions]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     // Advance animation mixer
     mixer?.update(delta);
 
@@ -5049,14 +5049,15 @@ function EyeBatCreatureInstance({ position, velocity, creatureScale = 10 }) {
     g.position.x += velocity[0] * 0.05;
     g.position.y += velocity[1] * 0.05;
 
-    // Gentle yaw
-    g.rotation.y += 0.002;
+    // Gentle banking sway — no spinning, keeps body aligned to travel direction
+    g.rotation.z = Math.sin(state.clock.elapsedTime * 0.4) * 0.08;
 
-    // Respawn behind camera
+    // Respawn behind camera — keep on sides
     if (g.position.z > 70) {
+      const side = Math.random() > 0.5 ? 1 : -1;
       g.position.set(
-        (Math.random() - 0.5) * 35,
-        (Math.random() - 0.5) * 25,
+        side * (25 + Math.random() * 15),
+        (Math.random() - 0.5) * 20,
         -200 - Math.random() * 150
       );
     }
@@ -5064,7 +5065,10 @@ function EyeBatCreatureInstance({ position, velocity, creatureScale = 10 }) {
 
   return (
     <group ref={groupRef} position={position} scale={creatureScale}>
-      <primitive object={clonedScene} />
+      {/* Rotate model so it faces +Z (toward camera) and flies level */}
+      <group rotation={[0.15, Math.PI, 0]}>
+        <primitive object={clonedScene} />
+      </group>
     </group>
   );
 }
@@ -5655,12 +5659,12 @@ function SimpleSpaceScene() {
     }));
   }, []);
 
-  // Eye-bat creatures — centered, staggered
+  // Eye-bat creatures — sides only, staggered
   const eyeBatCreatures = useMemo(() => {
     return Array.from({ length: 4 }, (_, i) => ({
       id: i,
       position: [
-        (Math.random() - 0.5) * 30,
+        i % 2 === 0 ? -(25 + Math.random() * 15) : (25 + Math.random() * 15), // left or right side
         (Math.random() - 0.5) * 20,
         -100 - i * 70 - Math.random() * 50,
       ],
@@ -6062,7 +6066,7 @@ function SimpleSpaceScene() {
           key={`bat-${c.id}`}
           position={c.position}
           velocity={c.velocity}
-          creatureScale={10}
+          creatureScale={2}
         />
       ))}
     </>
