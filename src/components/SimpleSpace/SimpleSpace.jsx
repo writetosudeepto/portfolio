@@ -5028,11 +5028,10 @@ function FBXFlyingVLoader({ position, velocity, rotationSpeed, initialRotation }
     g.rotation.y += rotationSpeed[1];
     g.rotation.z += rotationSpeed[2];
     if (g.position.z > 70) {
-      g.position.set(
-        (Math.random() - 0.5) * 50,
-        (Math.random() - 0.5) * 30,
-        -180 - Math.random() * 150
-      );
+      // Respawn in a random spread zone, never all at center
+      const rx = (Math.random() - 0.5) * 120; // -60 to +60
+      const ry = (Math.random() - 0.5) * 50;
+      g.position.set(rx, ry, -180 - Math.random() * 120);
     }
   });
 
@@ -5512,25 +5511,21 @@ function SimpleSpaceScene() {
 
 
 
-  // FBX Flying V guitars — varied positions, each with unique rotation
+  // FBX Flying V guitars — spread across distinct screen zones
   const fbxGuitars = useMemo(() => {
-    const positions = [
-      [0, 0],                                          // center
-      [-(20 + Math.random() * 15), (Math.random() - 0.5) * 12], // left side
-      [(20 + Math.random() * 15), (Math.random() - 0.5) * 12],  // right side
-      [(Math.random() - 0.5) * 10, 12 + Math.random() * 8],     // top center
-    ];
-    return Array.from({ length: 4 }, (_, i) => ({
+    // Fixed distinct zones: far-left, right-of-center, far-right, lower-left
+    const zones = [[-50, -8], [18, 12], [45, -5], [-30, -20]];
+    return zones.map((xy, i) => ({
       id: i,
       position: [
-        positions[i][0],
-        positions[i][1],
-        -100 - i * 80 - Math.random() * 50,
+        xy[0] + (Math.random() - 0.5) * 6,
+        xy[1] + (Math.random() - 0.5) * 5,
+        -80 - i * 55 - Math.random() * 35,
       ],
       velocity: [
-        (Math.random() - 0.5) * 0.015,
         (Math.random() - 0.5) * 0.01,
-        0.18 + Math.random() * 0.10,
+        (Math.random() - 0.5) * 0.008,
+        0.15 + Math.random() * 0.08,
       ],
       rotationSpeed: [
         (Math.random() - 0.5) * 0.02,
