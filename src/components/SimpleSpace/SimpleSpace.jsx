@@ -1,7 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
 import * as THREE from 'three';
 
@@ -5008,20 +5007,10 @@ function SimpleStarField({ isDarkMode = false }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Guitar models — OBJ + FBX Flying V
+// Guitar models — FBX Flying V
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PUBLIC = process.env.PUBLIC_URL || '';
-const GUITAR_OBJ_PATHS = [
-  `${PUBLIC}/assets/19361_Guitar_V1.obj`,
-  `${PUBLIC}/assets/10380_ElectricGuitar_v3_L3.obj`,
-];
-const GUITAR_MATERIAL_CONFIGS = [
-  { color: '#c8a97e', emissive: '#1a0800', shininess: 80 },
-  { color: '#1c1c2e', emissive: '#0a0a1a', shininess: 120 },
-  { color: '#8B0000', emissive: '#1a0000', shininess: 90 },
-  { color: '#2d4a2d', emissive: '#0a1a0a', shininess: 70 },
-];
 
 // Shared animation helper
 function useGuitarFrame(ref, velocity, spread = 30) {
@@ -5044,48 +5033,6 @@ function useGuitarFrame(ref, velocity, spread = 30) {
   });
 }
 
-// ── OBJ guitar ──
-function OBJGuitarLoader({ objPath, position, velocity, matConfig }) {
-  const obj = useLoader(OBJLoader, objPath);
-  const groupRef = useRef();
-  useGuitarFrame(groupRef, velocity);
-
-  const cloned = useMemo(() => {
-    const clone = obj.clone(true);
-    clone.traverse((child) => {
-      if (child.isMesh) {
-        child.material = new THREE.MeshPhongMaterial({
-          color: matConfig.color,
-          emissive: matConfig.emissive,
-          shininess: matConfig.shininess,
-          side: THREE.DoubleSide,
-        });
-      }
-    });
-    // Normalise so longest axis ≈ 16 scene units (bigger)
-    const box = new THREE.Box3().setFromObject(clone);
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    if (maxDim > 0) clone.scale.setScalar(16 / maxDim);
-    return clone;
-  }, [obj, matConfig]);
-
-  return (
-    <group ref={groupRef} position={position}>
-      <primitive object={cloned} />
-    </group>
-  );
-}
-
-function FlyingOBJGuitar({ position, velocity, guitarIndex = 0 }) {
-  const objPath = GUITAR_OBJ_PATHS[guitarIndex % GUITAR_OBJ_PATHS.length];
-  const matConfig = GUITAR_MATERIAL_CONFIGS[guitarIndex % GUITAR_MATERIAL_CONFIGS.length];
-  return (
-    <Suspense fallback={null}>
-      <OBJGuitarLoader objPath={objPath} position={position} velocity={velocity} matConfig={matConfig} />
-    </Suspense>
-  );
-}
 
 // ── FBX Flying V guitar (PBR textured) ──
 function FBXFlyingVLoader({ position, velocity }) {
@@ -5567,23 +5514,6 @@ function SimpleSpaceScene() {
     }));
   }, []);
 
-  // OBJ guitars — centered, bigger
-  const objGuitars = useMemo(() => {
-    return Array.from({ length: 4 }, (_, i) => ({
-      id: i,
-      position: [
-        (Math.random() - 0.5) * 30,   // center-ish x
-        (Math.random() - 0.5) * 20,   // center-ish y
-        -120 - i * 70 - Math.random() * 40,
-      ],
-      velocity: [
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * 0.01,
-        0.20 + Math.random() * 0.10,
-      ],
-      guitarIndex: i,
-    }));
-  }, []);
 
 
   // FBX Flying V guitars — centered, staggered
@@ -5948,16 +5878,6 @@ function SimpleSpaceScene() {
           velocity={guitar.velocity}
           size={guitar.size}
           guitarType={guitar.type}
-        />
-      ))}
-
-      {/* Real OBJ Guitar Models — loaded from public/assets/*.obj */}
-      {objGuitars.map((guitar) => (
-        <FlyingOBJGuitar
-          key={`obj-guitar-${guitar.id}`}
-          position={guitar.position}
-          velocity={guitar.velocity}
-          guitarIndex={guitar.guitarIndex}
         />
       ))}
 
