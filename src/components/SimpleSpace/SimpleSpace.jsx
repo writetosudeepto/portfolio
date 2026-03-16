@@ -1,9 +1,8 @@
 import React, { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { Stars, useGLTF, useAnimations } from '@react-three/drei';
+import { Stars } from '@react-three/drei';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
-import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils';
 import * as THREE from 'three';
 
 // Beautiful sci-fi cartoon spaceship
@@ -5009,79 +5008,6 @@ function SimpleStarField({ isDarkMode = false }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Eye-Bat Creature — animated Blender GLB (Fly action, ~166 frames)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const CREATURE_GLB = `${process.env.PUBLIC_URL || ''}/assets/3d-models/eye-bat-creature/eye-bat-creature.glb`;
-
-// Preload so all instances share one cached load
-useGLTF.preload(CREATURE_GLB);
-
-// One instance — clones the skinned skeleton so animations are independent
-function EyeBatCreatureInstance({ position, velocity, creatureScale = 10 }) {
-  const groupRef = useRef();
-  const { scene, animations } = useGLTF(CREATURE_GLB);
-
-  // Must clone skeleton for skinned meshes — plain clone() breaks bone bindings
-  const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
-
-  // Wire animations onto the cloned root
-  const { actions, mixer } = useAnimations(animations, clonedScene);
-
-  useEffect(() => {
-    if (!actions) return;
-    // Play "Fly" first, fall back to first available action
-    const clip = actions['Fly'] ?? actions[Object.keys(actions)[0]];
-    if (clip) {
-      clip.reset().setLoop(THREE.LoopRepeat, Infinity).play();
-    }
-  }, [actions]);
-
-  useFrame((state, delta) => {
-    // Advance animation mixer
-    mixer?.update(delta);
-
-    if (!groupRef.current) return;
-    const g = groupRef.current;
-
-    // Fly toward camera
-    g.position.z += velocity[2];
-    g.position.x += velocity[0] * 0.05;
-    g.position.y += velocity[1] * 0.05;
-
-    // Gentle banking sway — no spinning, keeps body aligned to travel direction
-    g.rotation.z = Math.sin(state.clock.elapsedTime * 0.4) * 0.08;
-
-    // Respawn behind camera — keep on sides
-    if (g.position.z > 70) {
-      const side = Math.random() > 0.5 ? 1 : -1;
-      g.position.set(
-        side * (25 + Math.random() * 15),
-        (Math.random() - 0.5) * 20,
-        -200 - Math.random() * 150
-      );
-    }
-  });
-
-  return (
-    <group ref={groupRef} position={position} scale={creatureScale}>
-      {/* Rotate model so it faces +Z (toward camera) and flies level */}
-      <group rotation={[0.15, Math.PI, 0]}>
-        <primitive object={clonedScene} />
-      </group>
-    </group>
-  );
-}
-
-function FlyingEyeBatCreature({ position, velocity, creatureScale }) {
-  return (
-    <Suspense fallback={null}>
-      <EyeBatCreatureInstance position={position} velocity={velocity} creatureScale={creatureScale} />
-    </Suspense>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Guitar models — OBJ + FBX Flying V
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -5659,22 +5585,6 @@ function SimpleSpaceScene() {
     }));
   }, []);
 
-  // Eye-bat creatures — sides only, staggered
-  const eyeBatCreatures = useMemo(() => {
-    return Array.from({ length: 4 }, (_, i) => ({
-      id: i,
-      position: [
-        i % 2 === 0 ? -(25 + Math.random() * 15) : (25 + Math.random() * 15), // left or right side
-        (Math.random() - 0.5) * 20,
-        -100 - i * 70 - Math.random() * 50,
-      ],
-      velocity: [
-        (Math.random() - 0.5) * 0.01,
-        (Math.random() - 0.5) * 0.005,
-        0.06 + Math.random() * 0.04,
-      ],
-    }));
-  }, []);
 
   // FBX Flying V guitars — centered, staggered
   const fbxGuitars = useMemo(() => {
@@ -6060,15 +5970,6 @@ function SimpleSpaceScene() {
         />
       ))}
 
-      {/* Animated Eye-Bat Creatures (Blender GLB) */}
-      {eyeBatCreatures.map((c) => (
-        <FlyingEyeBatCreature
-          key={`bat-${c.id}`}
-          position={c.position}
-          velocity={c.velocity}
-          creatureScale={2}
-        />
-      ))}
     </>
   );
 }
