@@ -5012,33 +5012,29 @@ function SimpleStarField({ isDarkMode = false }) {
 
 const PUBLIC = process.env.PUBLIC_URL || '';
 
-// Shared animation helper
-function useGuitarFrame(ref, velocity, spread = 30) {
+
+// ── FBX Flying V guitar (PBR textured) ──
+function FBXFlyingVLoader({ position, velocity, rotationSpeed, initialRotation }) {
+  const fbx = useLoader(FBXLoader, `${PUBLIC}/assets/3d-models/flying-v/guitar.fbx`);
+  const groupRef = useRef();
+
   useFrame(() => {
-    if (!ref.current) return;
-    const g = ref.current;
+    if (!groupRef.current) return;
+    const g = groupRef.current;
     g.position.z += velocity[2];
     g.position.x += velocity[0] * 0.05;
     g.position.y += velocity[1] * 0.05;
-    g.rotation.x += 0.006;
-    g.rotation.y += 0.009;
-    g.rotation.z += 0.004;
+    g.rotation.x += rotationSpeed[0];
+    g.rotation.y += rotationSpeed[1];
+    g.rotation.z += rotationSpeed[2];
     if (g.position.z > 70) {
       g.position.set(
-        (Math.random() - 0.5) * spread,
+        (Math.random() - 0.5) * 50,
         (Math.random() - 0.5) * 30,
         -180 - Math.random() * 150
       );
     }
   });
-}
-
-
-// ── FBX Flying V guitar (PBR textured) ──
-function FBXFlyingVLoader({ position, velocity }) {
-  const fbx = useLoader(FBXLoader, `${PUBLIC}/assets/3d-models/flying-v/guitar.fbx`);
-  const groupRef = useRef();
-  useGuitarFrame(groupRef, velocity, 25);
 
   const cloned = useMemo(() => {
     const clone = fbx.clone(true);
@@ -5071,16 +5067,16 @@ function FBXFlyingVLoader({ position, velocity }) {
   }, [fbx]);
 
   return (
-    <group ref={groupRef} position={position}>
+    <group ref={groupRef} position={position} rotation={initialRotation}>
       <primitive object={cloned} />
     </group>
   );
 }
 
-function FlyingFBXGuitar({ position, velocity }) {
+function FlyingFBXGuitar({ position, velocity, rotationSpeed, initialRotation }) {
   return (
     <Suspense fallback={null}>
-      <FBXFlyingVLoader position={position} velocity={velocity} />
+      <FBXFlyingVLoader position={position} velocity={velocity} rotationSpeed={rotationSpeed} initialRotation={initialRotation} />
     </Suspense>
   );
 }
@@ -5516,19 +5512,35 @@ function SimpleSpaceScene() {
 
 
 
-  // FBX Flying V guitars — centered, staggered
+  // FBX Flying V guitars — varied positions, each with unique rotation
   const fbxGuitars = useMemo(() => {
-    return Array.from({ length: 3 }, (_, i) => ({
+    const positions = [
+      [0, 0],                                          // center
+      [-(20 + Math.random() * 15), (Math.random() - 0.5) * 12], // left side
+      [(20 + Math.random() * 15), (Math.random() - 0.5) * 12],  // right side
+      [(Math.random() - 0.5) * 10, 12 + Math.random() * 8],     // top center
+    ];
+    return Array.from({ length: 4 }, (_, i) => ({
       id: i,
       position: [
-        (Math.random() - 0.5) * 25,
-        (Math.random() - 0.5) * 18,
+        positions[i][0],
+        positions[i][1],
         -100 - i * 80 - Math.random() * 50,
       ],
       velocity: [
         (Math.random() - 0.5) * 0.015,
         (Math.random() - 0.5) * 0.01,
         0.18 + Math.random() * 0.10,
+      ],
+      rotationSpeed: [
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.025,
+        (Math.random() - 0.5) * 0.015,
+      ],
+      initialRotation: [
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2,
       ],
     }));
   }, []);
@@ -5881,12 +5893,14 @@ function SimpleSpaceScene() {
         />
       ))}
 
-      {/* FBX Flying V — PBR textured, centered */}
+      {/* FBX Flying V — PBR textured, varied positions & rotations */}
       {fbxGuitars.map((guitar) => (
         <FlyingFBXGuitar
           key={`fbx-guitar-${guitar.id}`}
           position={guitar.position}
           velocity={guitar.velocity}
+          rotationSpeed={guitar.rotationSpeed}
+          initialRotation={guitar.initialRotation}
         />
       ))}
 
