@@ -5049,8 +5049,8 @@ function EyeBatCreatureInstance({ position, velocity, creatureScale = 10 }) {
     g.position.x += velocity[0] * 0.05;
     g.position.y += velocity[1] * 0.05;
 
-    // Slow yaw so creature is always a bit dynamic
-    g.rotation.y += 0.005;
+    // Gentle yaw
+    g.rotation.y += 0.002;
 
     // Respawn behind camera
     if (g.position.z > 70) {
@@ -5665,9 +5665,9 @@ function SimpleSpaceScene() {
         -100 - i * 70 - Math.random() * 50,
       ],
       velocity: [
-        (Math.random() - 0.5) * 0.02,
         (Math.random() - 0.5) * 0.01,
-        0.18 + Math.random() * 0.10,
+        (Math.random() - 0.5) * 0.005,
+        0.06 + Math.random() * 0.04,
       ],
     }));
   }, []);
