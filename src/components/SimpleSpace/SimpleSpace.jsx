@@ -1,6 +1,8 @@
-import React, { useRef, useMemo, useState, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo, useState, useEffect, Suspense } from 'react';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
 import * as THREE from 'three';
 
 // Beautiful sci-fi cartoon spaceship
@@ -3927,12 +3929,13 @@ function GlobularCluster({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1,
   );
 }
 
-// Supernova — expanding shell explosion with remnant
+// Supernova — SN 1987A-style with inclined equatorial ring, filamentary shells, remnant
 function Supernova({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, novaType = 0 }) {
   const novaRef = useRef();
   const shell1Ref = useRef();
   const shell2Ref = useRef();
   const shell3Ref = useRef();
+  const ringRef = useRef();
   const remnantRef = useRef();
   const expansion = useRef({ scale: 0.1, speed: 0.007 });
 
@@ -3951,15 +3954,22 @@ function Supernova({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDar
       const sc = exp.scale;
       if (shell1Ref.current) {
         shell1Ref.current.scale.setScalar(sc);
-        shell1Ref.current.material.opacity = Math.max(0, 0.65 - sc * 0.14);
+        shell1Ref.current.material.opacity = Math.max(0, 0.75 - sc * 0.16);
       }
       if (shell2Ref.current) {
         shell2Ref.current.scale.setScalar(sc * 0.72);
-        shell2Ref.current.material.opacity = Math.max(0, 0.55 - sc * 0.11);
+        shell2Ref.current.material.opacity = Math.max(0, 0.65 - sc * 0.13);
       }
       if (shell3Ref.current) {
         shell3Ref.current.scale.setScalar(sc * 0.42);
-        shell3Ref.current.material.opacity = Math.max(0, 0.85 - sc * 0.18);
+        shell3Ref.current.material.opacity = Math.max(0, 0.9 - sc * 0.2);
+      }
+      // SN 1987A equatorial ring expands slightly slower than outer shells
+      if (ringRef.current) {
+        const ringSc = Math.min(sc * 0.55 + 0.3, 1.8);
+        ringRef.current.scale.setScalar(ringSc);
+        ringRef.current.material.opacity = Math.max(0, 0.85 - ringSc * 0.3);
+        ringRef.current.rotation.z += 0.004;
       }
       if (remnantRef.current) {
         remnantRef.current.rotation.y += 0.08;
@@ -3977,28 +3987,38 @@ function Supernova({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDar
   });
 
   const novaSchemes = [
-    { outer: '#ff4400', mid: '#ff8800', inner: '#ffff00', core: '#ffffff', remnant: '#aaddff' },
-    { outer: '#aa00ff', mid: '#ff00aa', inner: '#ff8844', core: '#ffffff', remnant: '#ff88aa' },
-    { outer: '#0044ff', mid: '#00aaff', inner: '#88ffff', core: '#ffffff', remnant: '#aaffff' },
+    { outer: '#ff5500', mid: '#ffaa00', inner: '#ffff44', core: '#ffffff', remnant: '#aaddff', ring: '#ffdd88' },
+    { outer: '#cc00ff', mid: '#ff22aa', inner: '#ff9955', core: '#ffffff', remnant: '#ff88cc', ring: '#ff88ff' },
+    { outer: '#0066ff', mid: '#22ccff', inner: '#99ffff', core: '#ffffff', remnant: '#bbffff', ring: '#44aaff' },
   ];
   const colors = novaSchemes[novaType % novaSchemes.length];
 
   return (
     <group ref={novaRef} position={position}>
-      {/* Outer expanding shell (wireframe for filament look) */}
+      {/* Outer filamentary shell (wireframe) */}
       <mesh ref={shell1Ref}>
-        <sphereGeometry args={[size * 2.5, 14, 10]} />
-        <meshBasicMaterial color={colors.outer} transparent opacity={0.45} wireframe />
+        <sphereGeometry args={[size * 2.5, 18, 14]} />
+        <meshBasicMaterial color={colors.outer} transparent opacity={0.55} wireframe />
       </mesh>
-      {/* Mid shell */}
+      {/* Secondary filamentary shell */}
+      <mesh>
+        <sphereGeometry args={[size * 2.2, 12, 8]} />
+        <meshBasicMaterial color={colors.mid} transparent opacity={0.25} wireframe />
+      </mesh>
+      {/* Mid solid shell */}
       <mesh ref={shell2Ref}>
-        <sphereGeometry args={[size * 2.0, 12, 10]} />
-        <meshBasicMaterial color={colors.mid} transparent opacity={0.5} />
+        <sphereGeometry args={[size * 2.0, 14, 10]} />
+        <meshBasicMaterial color={colors.mid} transparent opacity={0.45} />
       </mesh>
       {/* Inner hot shell */}
       <mesh ref={shell3Ref}>
         <sphereGeometry args={[size * 1.5, 10, 8]} />
-        <meshBasicMaterial color={colors.inner} transparent opacity={0.65} />
+        <meshBasicMaterial color={colors.inner} transparent opacity={0.7} />
+      </mesh>
+      {/* SN 1987A-style inclined equatorial torus ring (~44° inclination) */}
+      <mesh ref={ringRef} rotation={[Math.PI / 2 + 0.77, 0, 0.3]}>
+        <torusGeometry args={[size * 1.8, size * 0.18, 8, 32]} />
+        <meshBasicMaterial color={colors.ring} transparent opacity={0.85} />
       </mesh>
       {/* Ejecta jets */}
       {[0, 1, 2, 3, 4, 5].map((i) => {
@@ -4009,8 +4029,8 @@ function Supernova({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDar
             position={[Math.cos(angle) * Math.cos(elev) * size * 1.2, Math.sin(elev) * size * 1.2, Math.sin(angle) * Math.cos(elev) * size * 1.2]}
             rotation={[elev, angle, 0]}
           >
-            <cylinderGeometry args={[size * 0.05, size * 0.18, size * 2, 6]} />
-            <meshBasicMaterial color={i % 2 === 0 ? colors.outer : colors.mid} transparent opacity={0.35} />
+            <cylinderGeometry args={[size * 0.04, size * 0.16, size * 2.2, 6]} />
+            <meshBasicMaterial color={i % 2 === 0 ? colors.outer : colors.mid} transparent opacity={0.4} />
           </mesh>
         );
       })}
@@ -4169,6 +4189,264 @@ function FlyingDesktopComputer({ position = [0, 0, 0], velocity = [0, 0, 1], siz
         <cylinderGeometry args={[size * 0.025, size * 0.025, size * 0.4, 4]} />
         <meshBasicMaterial color={colors.cable} />
       </mesh>
+    </group>
+  );
+}
+
+// CartoonNebula — Minecraft-style pixelated canvas texture nebulae
+function CartoonNebula({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, nebulaType = 0 }) {
+  const nebulaRef = useRef();
+  const plane1Ref = useRef();
+  const plane2Ref = useRef();
+  const plane3Ref = useRef();
+
+  const nebulaConfigs = [
+    // Orion — red/pink/cyan
+    [
+      { x: 0.5, y: 0.5, r: 0.38, color: '#ff2244' },
+      { x: 0.3, y: 0.62, r: 0.24, color: '#ff88bb' },
+      { x: 0.68, y: 0.34, r: 0.2, color: '#44ffee' },
+      { x: 0.5, y: 0.5, r: 0.13, color: '#ffffff' },
+    ],
+    // Crab — orange/blue filaments
+    [
+      { x: 0.5, y: 0.5, r: 0.34, color: '#ff6600' },
+      { x: 0.38, y: 0.42, r: 0.22, color: '#ffaa22' },
+      { x: 0.62, y: 0.58, r: 0.22, color: '#2255ff' },
+      { x: 0.5, y: 0.5, r: 0.11, color: '#ffffff' },
+    ],
+    // Helix — blue inner ring + red outer
+    [
+      { x: 0.5, y: 0.5, r: 0.4, color: '#cc2200' },
+      { x: 0.5, y: 0.5, r: 0.3, color: '#2288ff' },
+      { x: 0.5, y: 0.5, r: 0.17, color: '#99ddff' },
+      { x: 0.5, y: 0.5, r: 0.07, color: '#ffffff' },
+    ],
+    // Eagle Pillars — purple/dark with pink glow
+    [
+      { x: 0.5, y: 0.5, r: 0.36, color: '#660088' },
+      { x: 0.35, y: 0.5, r: 0.2, color: '#aa00cc' },
+      { x: 0.65, y: 0.5, r: 0.2, color: '#ff44bb' },
+      { x: 0.5, y: 0.5, r: 0.09, color: '#ffaaff' },
+    ],
+  ];
+
+  const texture = useMemo(() => {
+    const SIZE = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    const blobs = nebulaConfigs[nebulaType % nebulaConfigs.length];
+    for (const blob of blobs) {
+      const gx = blob.x * SIZE;
+      const gy = blob.y * SIZE;
+      const gr = blob.r * SIZE;
+      ctx.globalCompositeOperation = 'screen';
+      const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
+      grad.addColorStop(0, blob.color);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, SIZE, SIZE);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    return tex;
+  }, [nebulaType]);
+
+  useFrame((state) => {
+    if (nebulaRef.current) {
+      nebulaRef.current.position.z += velocity[2];
+      nebulaRef.current.position.x += velocity[0] * 0.02;
+      nebulaRef.current.position.y += velocity[1] * 0.02;
+      const time = state.clock.elapsedTime;
+      nebulaRef.current.rotation.z += 0.0004;
+      const baseOpacity = 0.52 + Math.sin(time * 0.35) * 0.13;
+      if (plane1Ref.current) plane1Ref.current.material.opacity = baseOpacity;
+      if (plane2Ref.current) plane2Ref.current.material.opacity = baseOpacity * 0.72;
+      if (plane3Ref.current) plane3Ref.current.material.opacity = baseOpacity * 0.48;
+      if (nebulaRef.current.position.z > 80) {
+        nebulaRef.current.position.set(
+          (Math.random() < 0.5 ? -1 : 1) * (90 + Math.random() * 160),
+          (Math.random() - 0.5) * 90,
+          -450 - Math.random() * 350
+        );
+      }
+    }
+  });
+
+  return (
+    <group ref={nebulaRef} position={position}>
+      <mesh ref={plane1Ref}>
+        <planeGeometry args={[size * 14, size * 14]} />
+        <meshBasicMaterial map={texture} transparent opacity={0.52} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh ref={plane2Ref} rotation={[0, Math.PI / 2.2, 0.35]}>
+        <planeGeometry args={[size * 11, size * 11]} />
+        <meshBasicMaterial map={texture} transparent opacity={0.38} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh ref={plane3Ref} rotation={[0.45, Math.PI / 3.5, 0.1]}>
+        <planeGeometry args={[size * 9, size * 9]} />
+        <meshBasicMaterial map={texture} transparent opacity={0.25} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+// JacksonFlyingV — iconic V-shaped electric guitar tumbling through space
+function JacksonFlyingV({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, guitarType = 0 }) {
+  const guitarRef = useRef();
+
+  const guitarSchemes = [
+    { body: '#111111', fretboard: '#3d2200', frets: '#cccccc', pickups: '#222222', strings: '#dddddd', hardware: '#aaaaaa', binding: '#ffffff' },
+    { body: '#f5f5f5', fretboard: '#2a1500', frets: '#888888', pickups: '#111111', strings: '#cccccc', hardware: '#888888', binding: '#000000' },
+    { body: '#880000', fretboard: '#3d2200', frets: '#ffcc00', pickups: '#111111', strings: '#ffdd88', hardware: '#ffcc00', binding: '#ffcc00' },
+  ];
+  const colors = guitarSchemes[guitarType % guitarSchemes.length];
+
+  useFrame((state) => {
+    if (guitarRef.current) {
+      guitarRef.current.position.z += velocity[2];
+      guitarRef.current.position.x += velocity[0] * 0.05;
+      guitarRef.current.position.y += velocity[1] * 0.05;
+      guitarRef.current.rotation.x += 0.009;
+      guitarRef.current.rotation.y += 0.014;
+      guitarRef.current.rotation.z += 0.006;
+      if (guitarRef.current.position.z > 80) {
+        guitarRef.current.position.set(
+          (Math.random() < 0.5 ? -1 : 1) * (40 + Math.random() * 80),
+          (Math.random() - 0.5) * 50,
+          -200 - Math.random() * 200
+        );
+      }
+    }
+  });
+
+  const bodyW = size * 0.28;
+  const bodyH = size * 0.18;
+  const bodyD = size * 0.12;
+  const wingL = size * 1.4;
+  const leftAngle = 0.85;  // ~49 degrees
+  const rightAngle = -0.85;
+
+  return (
+    <group ref={guitarRef} position={position}>
+      {/* Left wing of V */}
+      <mesh
+        position={[
+          -Math.sin(leftAngle) * wingL * 0.5,
+          Math.cos(leftAngle) * wingL * 0.5,
+          0
+        ]}
+        rotation={[0, 0, leftAngle]}
+      >
+        <boxGeometry args={[bodyW, wingL, bodyD]} />
+        <meshBasicMaterial color={colors.body} />
+      </mesh>
+      {/* Left wing binding */}
+      <mesh
+        position={[
+          -Math.sin(leftAngle) * wingL * 0.5,
+          Math.cos(leftAngle) * wingL * 0.5,
+          bodyD * 0.51
+        ]}
+        rotation={[0, 0, leftAngle]}
+      >
+        <boxGeometry args={[bodyW * 0.95, wingL * 0.97, bodyD * 0.06]} />
+        <meshBasicMaterial color={colors.binding} />
+      </mesh>
+      {/* Right wing of V */}
+      <mesh
+        position={[
+          -Math.sin(rightAngle) * wingL * 0.5,
+          Math.cos(rightAngle) * wingL * 0.5,
+          0
+        ]}
+        rotation={[0, 0, rightAngle]}
+      >
+        <boxGeometry args={[bodyW, wingL, bodyD]} />
+        <meshBasicMaterial color={colors.body} />
+      </mesh>
+      {/* Right wing binding */}
+      <mesh
+        position={[
+          -Math.sin(rightAngle) * wingL * 0.5,
+          Math.cos(rightAngle) * wingL * 0.5,
+          bodyD * 0.51
+        ]}
+        rotation={[0, 0, rightAngle]}
+      >
+        <boxGeometry args={[bodyW * 0.95, wingL * 0.97, bodyD * 0.06]} />
+        <meshBasicMaterial color={colors.binding} />
+      </mesh>
+      {/* Center V-junction block */}
+      <mesh position={[0, -size * 0.1, 0]}>
+        <boxGeometry args={[bodyW * 1.5, bodyH * 2, bodyD]} />
+        <meshBasicMaterial color={colors.body} />
+      </mesh>
+      {/* Neck — long box pointing upward from center */}
+      <mesh position={[0, size * 1.35, 0]}>
+        <boxGeometry args={[size * 0.12, size * 1.8, size * 0.1]} />
+        <meshBasicMaterial color={colors.fretboard} />
+      </mesh>
+      {/* Neck binding strips */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * size * 0.063, size * 1.35, 0]}>
+          <boxGeometry args={[size * 0.012, size * 1.8, size * 0.11]} />
+          <meshBasicMaterial color={colors.frets} />
+        </mesh>
+      ))}
+      {/* Fret markers — 5 frets */}
+      {[0.6, 0.85, 1.1, 1.35, 1.6].map((yOff, fi) => (
+        <mesh key={fi} position={[0, yOff, size * 0.052]}>
+          <boxGeometry args={[size * 0.1, size * 0.018, size * 0.015]} />
+          <meshBasicMaterial color={colors.frets} />
+        </mesh>
+      ))}
+      {/* Headstock — pointed, slightly wider */}
+      <mesh position={[0, size * 2.4, 0]}>
+        <boxGeometry args={[size * 0.24, size * 0.45, size * 0.09]} />
+        <meshBasicMaterial color={colors.body} />
+      </mesh>
+      {/* Tuning pegs (6) — 3 per side */}
+      {[-1, 1].map((side) =>
+        [0, 0.14, 0.28].map((yOff, pi) => (
+          <mesh key={`peg-${side}-${pi}`} position={[side * size * 0.14, size * 2.22 + yOff * size, size * 0.05]}>
+            <cylinderGeometry args={[size * 0.03, size * 0.03, size * 0.12, 6]} />
+            <meshBasicMaterial color={colors.hardware} />
+          </mesh>
+        ))
+      )}
+      {/* Bridge / Floyd Rose */}
+      <mesh position={[0, -size * 0.25, bodyD * 0.51]}>
+        <boxGeometry args={[size * 0.55, size * 0.1, size * 0.06]} />
+        <meshBasicMaterial color={colors.hardware} />
+      </mesh>
+      {/* Humbucker pickups (2) */}
+      {[size * 0.08, -size * 0.08].map((yOff, pi) => (
+        <mesh key={pi} position={[0, yOff, bodyD * 0.51]}>
+          <boxGeometry args={[size * 0.5, size * 0.12, size * 0.06]} />
+          <meshBasicMaterial color={colors.pickups} />
+        </mesh>
+      ))}
+      {/* Pickup covers — cream colored ridges */}
+      {[size * 0.08, -size * 0.08].map((yOff, pi) =>
+        [-2, -1, 0, 1, 2].map((xi) => (
+          <mesh key={`pc-${pi}-${xi}`} position={[xi * size * 0.08, yOff, bodyD * 0.55]}>
+            <boxGeometry args={[size * 0.04, size * 0.1, size * 0.02]} />
+            <meshBasicMaterial color={colors.hardware} />
+          </mesh>
+        ))
+      )}
+      {/* Strings (6 thin cylinders along neck) */}
+      {[-2.5, -1.5, -0.5, 0.5, 1.5, 2.5].map((xi, si) => (
+        <mesh key={si} position={[xi * size * 0.016, size * 1.1, size * 0.055]}>
+          <cylinderGeometry args={[size * 0.004, size * 0.004, size * 2.8, 4]} />
+          <meshBasicMaterial color={colors.strings} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -4729,6 +5007,138 @@ function SimpleStarField({ isDarkMode = false }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Guitar models — OBJ + FBX Flying V
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PUBLIC = process.env.PUBLIC_URL || '';
+const GUITAR_OBJ_PATHS = [
+  `${PUBLIC}/assets/19361_Guitar_V1.obj`,
+  `${PUBLIC}/assets/10380_ElectricGuitar_v3_L3.obj`,
+];
+const GUITAR_MATERIAL_CONFIGS = [
+  { color: '#c8a97e', emissive: '#1a0800', shininess: 80 },
+  { color: '#1c1c2e', emissive: '#0a0a1a', shininess: 120 },
+  { color: '#8B0000', emissive: '#1a0000', shininess: 90 },
+  { color: '#2d4a2d', emissive: '#0a1a0a', shininess: 70 },
+];
+
+// Shared animation helper
+function useGuitarFrame(ref, velocity, spread = 30) {
+  useFrame(() => {
+    if (!ref.current) return;
+    const g = ref.current;
+    g.position.z += velocity[2];
+    g.position.x += velocity[0] * 0.05;
+    g.position.y += velocity[1] * 0.05;
+    g.rotation.x += 0.006;
+    g.rotation.y += 0.009;
+    g.rotation.z += 0.004;
+    if (g.position.z > 70) {
+      g.position.set(
+        (Math.random() - 0.5) * spread,
+        (Math.random() - 0.5) * 30,
+        -180 - Math.random() * 150
+      );
+    }
+  });
+}
+
+// ── OBJ guitar ──
+function OBJGuitarLoader({ objPath, position, velocity, matConfig }) {
+  const obj = useLoader(OBJLoader, objPath);
+  const groupRef = useRef();
+  useGuitarFrame(groupRef, velocity);
+
+  const cloned = useMemo(() => {
+    const clone = obj.clone(true);
+    clone.traverse((child) => {
+      if (child.isMesh) {
+        child.material = new THREE.MeshPhongMaterial({
+          color: matConfig.color,
+          emissive: matConfig.emissive,
+          shininess: matConfig.shininess,
+          side: THREE.DoubleSide,
+        });
+      }
+    });
+    // Normalise so longest axis ≈ 16 scene units (bigger)
+    const box = new THREE.Box3().setFromObject(clone);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0) clone.scale.setScalar(16 / maxDim);
+    return clone;
+  }, [obj, matConfig]);
+
+  return (
+    <group ref={groupRef} position={position}>
+      <primitive object={cloned} />
+    </group>
+  );
+}
+
+function FlyingOBJGuitar({ position, velocity, guitarIndex = 0 }) {
+  const objPath = GUITAR_OBJ_PATHS[guitarIndex % GUITAR_OBJ_PATHS.length];
+  const matConfig = GUITAR_MATERIAL_CONFIGS[guitarIndex % GUITAR_MATERIAL_CONFIGS.length];
+  return (
+    <Suspense fallback={null}>
+      <OBJGuitarLoader objPath={objPath} position={position} velocity={velocity} matConfig={matConfig} />
+    </Suspense>
+  );
+}
+
+// ── FBX Flying V guitar (PBR textured) ──
+function FBXFlyingVLoader({ position, velocity }) {
+  const fbx = useLoader(FBXLoader, `${PUBLIC}/assets/3d-models/flying-v/guitar.fbx`);
+  const groupRef = useRef();
+  useGuitarFrame(groupRef, velocity, 25);
+
+  const cloned = useMemo(() => {
+    const clone = fbx.clone(true);
+
+    // Load PBR textures
+    const loader = new THREE.TextureLoader();
+    const albedo    = loader.load(`${PUBLIC}/assets/3d-models/flying-v/albedo.png`);
+    const normal    = loader.load(`${PUBLIC}/assets/3d-models/flying-v/normal.png`);
+    const roughness = loader.load(`${PUBLIC}/assets/3d-models/flying-v/roughness.png`);
+    const metalness = loader.load(`${PUBLIC}/assets/3d-models/flying-v/metalness.png`);
+
+    clone.traverse((child) => {
+      if (child.isMesh) {
+        child.material = new THREE.MeshStandardMaterial({
+          map: albedo,
+          normalMap: normal,
+          roughnessMap: roughness,
+          metalnessMap: metalness,
+          side: THREE.DoubleSide,
+        });
+      }
+    });
+
+    // Normalise to ~18 scene units — largest of all guitars
+    const box = new THREE.Box3().setFromObject(clone);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0) clone.scale.setScalar(18 / maxDim);
+    return clone;
+  }, [fbx]);
+
+  return (
+    <group ref={groupRef} position={position}>
+      <primitive object={cloned} />
+    </group>
+  );
+}
+
+function FlyingFBXGuitar({ position, velocity }) {
+  return (
+    <Suspense fallback={null}>
+      <FBXFlyingVLoader position={position} velocity={velocity} />
+    </Suspense>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main scene component
 function SimpleSpaceScene() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -5133,6 +5543,65 @@ function SimpleSpaceScene() {
     }));
   }, []);
 
+  const nebulae = useMemo(() => {
+    return Array.from({ length: 4 }, (_, i) => ({
+      id: i,
+      position: [
+        (Math.random() < 0.5 ? -1 : 1) * (80 + Math.random() * 180),
+        (Math.random() - 0.5) * 100,
+        -300 - i * 180 - Math.random() * 200
+      ],
+      velocity: [(Math.random() - 0.5) * 0.01, (Math.random() - 0.5) * 0.005, 0.08 + Math.random() * 0.04],
+      size: Math.random() * 1.2 + 1.8,
+      type: i % 4
+    }));
+  }, []);
+
+  const flyingGuitars = useMemo(() => {
+    return Array.from({ length: 3 }, (_, i) => ({
+      id: i,
+      position: [(Math.random() - 0.5) * 80, (Math.random() - 0.5) * 45 + 8, -120 - i * 50 - Math.random() * 50],
+      velocity: [(Math.random() - 0.5) * 0.045, (Math.random() - 0.5) * 0.025, 0.28 + Math.random() * 0.14],
+      size: Math.random() * 0.4 + 0.8,
+      type: i % 3
+    }));
+  }, []);
+
+  // OBJ guitars — centered, bigger
+  const objGuitars = useMemo(() => {
+    return Array.from({ length: 4 }, (_, i) => ({
+      id: i,
+      position: [
+        (Math.random() - 0.5) * 30,   // center-ish x
+        (Math.random() - 0.5) * 20,   // center-ish y
+        -120 - i * 70 - Math.random() * 40,
+      ],
+      velocity: [
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.01,
+        0.20 + Math.random() * 0.10,
+      ],
+      guitarIndex: i,
+    }));
+  }, []);
+
+  // FBX Flying V guitars — centered, staggered
+  const fbxGuitars = useMemo(() => {
+    return Array.from({ length: 3 }, (_, i) => ({
+      id: i,
+      position: [
+        (Math.random() - 0.5) * 25,
+        (Math.random() - 0.5) * 18,
+        -100 - i * 80 - Math.random() * 50,
+      ],
+      velocity: [
+        (Math.random() - 0.5) * 0.015,
+        (Math.random() - 0.5) * 0.01,
+        0.18 + Math.random() * 0.10,
+      ],
+    }));
+  }, []);
+
   return (
     <>
       {/* Lighting - different for light and dark modes */}
@@ -5456,6 +5925,47 @@ function SimpleSpaceScene() {
           size={comp.size}
           isDarkMode={isDarkMode}
           computerType={comp.type}
+        />
+      ))}
+
+      {/* Cartoon Nebulae (Minecraft-pixelated canvas texture) */}
+      {nebulae.map((neb) => (
+        <CartoonNebula
+          key={`nebula-${neb.id}`}
+          position={neb.position}
+          velocity={neb.velocity}
+          size={neb.size}
+          nebulaType={neb.type}
+        />
+      ))}
+
+      {/* Jackson Flying V Guitars (procedural geometry) */}
+      {flyingGuitars.map((guitar) => (
+        <JacksonFlyingV
+          key={`guitar-${guitar.id}`}
+          position={guitar.position}
+          velocity={guitar.velocity}
+          size={guitar.size}
+          guitarType={guitar.type}
+        />
+      ))}
+
+      {/* Real OBJ Guitar Models — loaded from public/assets/*.obj */}
+      {objGuitars.map((guitar) => (
+        <FlyingOBJGuitar
+          key={`obj-guitar-${guitar.id}`}
+          position={guitar.position}
+          velocity={guitar.velocity}
+          guitarIndex={guitar.guitarIndex}
+        />
+      ))}
+
+      {/* FBX Flying V — PBR textured, centered */}
+      {fbxGuitars.map((guitar) => (
+        <FlyingFBXGuitar
+          key={`fbx-guitar-${guitar.id}`}
+          position={guitar.position}
+          velocity={guitar.velocity}
         />
       ))}
     </>
