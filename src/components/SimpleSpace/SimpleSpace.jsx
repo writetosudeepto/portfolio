@@ -1,8 +1,9 @@
 import React, { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
+import { Stars, useGLTF, useAnimations } from '@react-three/drei';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils';
 import * as THREE from 'three';
 
 // Beautiful sci-fi cartoon spaceship
@@ -5008,6 +5009,75 @@ function SimpleStarField({ isDarkMode = false }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Eye-Bat Creature — animated Blender GLB (Fly action, ~166 frames)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CREATURE_GLB = `${process.env.PUBLIC_URL || ''}/assets/3d-models/eye-bat-creature/eye-bat-creature.glb`;
+
+// Preload so all instances share one cached load
+useGLTF.preload(CREATURE_GLB);
+
+// One instance — clones the skinned skeleton so animations are independent
+function EyeBatCreatureInstance({ position, velocity, creatureScale = 10 }) {
+  const groupRef = useRef();
+  const { scene, animations } = useGLTF(CREATURE_GLB);
+
+  // Must clone skeleton for skinned meshes — plain clone() breaks bone bindings
+  const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+
+  // Wire animations onto the cloned root
+  const { actions, mixer } = useAnimations(animations, clonedScene);
+
+  useEffect(() => {
+    if (!actions) return;
+    // Play "Fly" first, fall back to first available action
+    const clip = actions['Fly'] ?? actions[Object.keys(actions)[0]];
+    if (clip) {
+      clip.reset().setLoop(THREE.LoopRepeat, Infinity).play();
+    }
+  }, [actions]);
+
+  useFrame((_, delta) => {
+    // Advance animation mixer
+    mixer?.update(delta);
+
+    if (!groupRef.current) return;
+    const g = groupRef.current;
+
+    // Fly toward camera
+    g.position.z += velocity[2];
+    g.position.x += velocity[0] * 0.05;
+    g.position.y += velocity[1] * 0.05;
+
+    // Slow yaw so creature is always a bit dynamic
+    g.rotation.y += 0.005;
+
+    // Respawn behind camera
+    if (g.position.z > 70) {
+      g.position.set(
+        (Math.random() - 0.5) * 35,
+        (Math.random() - 0.5) * 25,
+        -200 - Math.random() * 150
+      );
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={position} scale={creatureScale}>
+      <primitive object={clonedScene} />
+    </group>
+  );
+}
+
+function FlyingEyeBatCreature({ position, velocity, creatureScale }) {
+  return (
+    <Suspense fallback={null}>
+      <EyeBatCreatureInstance position={position} velocity={velocity} creatureScale={creatureScale} />
+    </Suspense>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Guitar models — OBJ + FBX Flying V
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -5585,6 +5655,23 @@ function SimpleSpaceScene() {
     }));
   }, []);
 
+  // Eye-bat creatures — centered, staggered
+  const eyeBatCreatures = useMemo(() => {
+    return Array.from({ length: 4 }, (_, i) => ({
+      id: i,
+      position: [
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 20,
+        -100 - i * 70 - Math.random() * 50,
+      ],
+      velocity: [
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.01,
+        0.18 + Math.random() * 0.10,
+      ],
+    }));
+  }, []);
+
   // FBX Flying V guitars — centered, staggered
   const fbxGuitars = useMemo(() => {
     return Array.from({ length: 3 }, (_, i) => ({
@@ -5966,6 +6053,16 @@ function SimpleSpaceScene() {
           key={`fbx-guitar-${guitar.id}`}
           position={guitar.position}
           velocity={guitar.velocity}
+        />
+      ))}
+
+      {/* Animated Eye-Bat Creatures (Blender GLB) */}
+      {eyeBatCreatures.map((c) => (
+        <FlyingEyeBatCreature
+          key={`bat-${c.id}`}
+          position={c.position}
+          velocity={c.velocity}
+          creatureScale={10}
         />
       ))}
     </>
