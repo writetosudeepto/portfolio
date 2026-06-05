@@ -3274,31 +3274,32 @@ function FlyingAstronaut({ position = [0, 0, 0], size = 1 }) {
 // ════════════════════════════════════════════════════════════════════════
 //  Planet Express ship from Futurama (nave futurama by joao carlos g, CC-BY)
 //
-//  Flight plan (one continuous, seamless ~24 s loop):
-//    1. APPROACH — swoops in from deep space straight toward the camera,
-//       decelerating as it nears Bender.
-//    2. ORBIT    — flies TWO full revolutions around Bender. The orbit is
-//       tilted in the z-axis so the front of each loop comes very close to
-//       the camera (huge, painted on top of Bender) and the back swings far
-//       away (small) — reading as real depth around the 2-D image.
-//    3. RETREAT  — boosts back out into deep space, accelerating away.
-//  The loop's start and end share the same deep-space point, so it repeats
-//  with no visible cut. The nose always follows the direction of travel and
-//  the ship banks into its turns like a real aircraft.
+//  Flight plan (one continuous, seamless loop):
+//    1. APPROACH — swoops in from deep space toward Bender.
+//    2. ORBIT    — flies TWO revolutions around Bender. The orbit is tilted in
+//       z so the front of each loop comes close to the camera (huge, painted
+//       on top of Bender) and the back swings far away (small, behind Bender)
+//       — reading as real depth around the 2-D image.
+//    3. RETREAT  — boosts back out into deep space, then loops.
+//
+//  The whole journey is a single closed CatmullRom spline. Position comes from
+//  curve.getPoint(t) (denser way-points around the orbit ⇒ the ship naturally
+//  spends most of the loop maneuvering near Bender and blitzes the empty
+//  deep-space leg). Heading follows curve.getTangent(t); the ship banks into
+//  its turns using the heading-change technique from three.js' roller-coaster
+//  example, and all orientation is damped for inertia/weight.
 //
 //  Camera is at (0,0,30) looking toward −z, so world origin ≈ screen centre,
 //  which is where Bender's 2-D image sits.
 // ════════════════════════════════════════════════════════════════════════
-const PE_CYCLE   = 24;                            // seconds per full loop
-const PE_FAR     = new THREE.Vector3(-32, 15, -190); // deep-space staging point
-const PE_CENTER  = { x: 1, y: -1, z: -4 };        // orbit centre ≈ Bender
-const PE_RX      = 17;                             // orbit radius (left/right)
-const PE_RZ      = 15;                             // orbit depth (near/far)
-const PE_RY      = 2.5;                            // vertical bob amplitude
-const PE_TH0     = Math.PI;                        // orbit entry angle (far point)
-const PE_SPINS   = 2;                              // revolutions around Bender
-const PE_APP_END = 0.22;                           // approach done at 22 % of loop
-const PE_ORB_END = 0.74;                           // orbit done at 74 % of loop
+const PE_CYCLE   = 20;                       // seconds per full loop
+const PE_CENTER  = { x: 1, y: -1, z: -4 };   // orbit centre ≈ Bender
+const PE_RX      = 17;                        // orbit radius (left/right)
+const PE_RZ      = 15;                        // orbit depth (near/far)
+const PE_RY      = 2.5;                       // vertical bob amplitude
+const PE_TH0     = Math.PI;                   // orbit entry angle (far/back point)
+const PE_SPINS   = 2;                         // revolutions around Bender
+const PE_PTS_PER_SPIN = 8;                    // orbit way-points per revolution
 
 // Depth-based layering: the ship layer paints in front of Bender when nearer
 // than the orbit centre, and behind Bender when farther. The flip happens at
@@ -3315,69 +3316,63 @@ const PE_Z_FRONT  = 7;            // above Bender (above the .app__wrapper conte
 const PE_Z_BEHIND = 0;            // below the .app__wrapper context → behind Bender
 const PE_FLIP_Z   = PE_CENTER.z;  // depth threshold = orbit centre
 
-// Model-orientation offsets — tuned so the ship's nose faces its travel
-// direction (the gltf's default facing is corrected here).
-const PE_YAW_OFF   = Math.PI / 2;
+// Model-orientation offsets. The gltf's long (nose-to-tail) axis is local +Z
+// — the bounding box is 225×311×592 (x×y×z) — so heading from
+// yaw = atan2(tan.x, tan.z) already aligns the nose with the flight path and
+// no yaw correction is needed. Euler order is YXZ (yaw → pitch → roll).
+const PE_YAW_OFF   = Math.PI;  // model nose is −Z, so flip 180° to lead the path
 const PE_PITCH_OFF = 0;
 const PE_ROLL_OFF  = 0;
 
-// Approach / retreat curve control points (give the in/out a sweeping arc).
-const PE_APP_CTRL = new THREE.Vector3(16, 6, -55);
-const PE_RET_CTRL = new THREE.Vector3(-16, 11, -70);
+// Maneuver tuning.
+const PE_BANK_GAIN   = 0.15;  // how hard the ship rolls into a turn
+const PE_BANK_MAX    = 0.85;  // max bank angle (rad)
+const PE_TANGENT_DT  = 0.004; // look-ahead along the curve for heading change
+const PE_ORIENT_DAMP = 6;     // orientation smoothing (higher = snappier)
+const PE_GLOW_DAMP   = 4;     // engine-glow smoothing
+
+// Build the flight path once: a single closed CatmullRom spline through
+// deep-space → swoop-in → 2 orbit loops → boost-out way-points.
+function buildShipCurve() {
+  const C = PE_CENTER;
+  const pts = [
+    new THREE.Vector3(-34, 16, -195),  // deep-space staging point
+    new THREE.Vector3(-14, 9, -110),   // swoop-in
+    new THREE.Vector3(6, 3, -55),      // approach into the orbit's far point
+  ];
+  // Two orbit loops around Bender (tilted ellipse in the x/z plane).
+  const n = PE_SPINS * PE_PTS_PER_SPIN;
+  for (let k = 0; k < n; k++) {
+    const th = PE_TH0 + (k / PE_PTS_PER_SPIN) * Math.PI * 2;
+    pts.push(new THREE.Vector3(
+      C.x + PE_RX * Math.sin(th),
+      C.y + PE_RY * Math.sin(th),
+      C.z + PE_RZ * Math.cos(th)
+    ));
+  }
+  // Boost-out; the closed spline links the last point back to the first
+  // through deep space (off-screen), so the loop is seamless.
+  pts.push(new THREE.Vector3(-8, 11, -60));
+  pts.push(new THREE.Vector3(-28, 16, -135));
+  return new THREE.CatmullRomCurve3(pts, true, 'centripetal', 0.5);
+}
+const PE_CURVE = buildShipCurve();
 
 // Reusable temporaries (single ship instance → safe to share at module scope).
-const _peA = new THREE.Vector3();
-const _peB = new THREE.Vector3();
-const _peC = new THREE.Vector3();
-const _peF1 = new THREE.Vector3();
-const _peF2 = new THREE.Vector3();
-const _peEntry = new THREE.Vector3();
+const _pePos   = new THREE.Vector3();
+const _peTan   = new THREE.Vector3();
+const _peTan2  = new THREE.Vector3();
+const _peEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+const _peQuat  = new THREE.Quaternion();
 
-const peEaseOut = (p) => 1 - Math.pow(1 - p, 3);  // decelerate (approach)
-const peEaseIn  = (p) => p * p * p;               // accelerate (retreat)
-const peClamp   = (v, a, b) => Math.max(a, Math.min(b, v));
-
-// Position on the orbit ellipse at angle th.
-function peOrbit(th, out) {
-  return out.set(
-    PE_CENTER.x + PE_RX * Math.sin(th),
-    PE_CENTER.y + PE_RY * Math.sin(th),
-    PE_CENTER.z + PE_RZ * Math.cos(th)
-  );
-}
-
-// Quadratic Bézier between p0 and p1 with control pc.
-function peBezier(p, p0, pc, p1, out) {
-  const m = 1 - p;
-  return out.set(
-    m * m * p0.x + 2 * m * p * pc.x + p * p * p1.x,
-    m * m * p0.y + 2 * m * p * pc.y + p * p * p1.y,
-    m * m * p0.z + 2 * m * p * pc.z + p * p * p1.z
-  );
-}
-
-// Full flight-path position at normalized loop time u ∈ [0,1).
-function pePath(u, out) {
-  peOrbit(PE_TH0, _peEntry);                       // shared orbit entry/exit point
-  if (u < PE_APP_END) {
-    const p = peEaseOut(u / PE_APP_END);
-    peBezier(p, PE_FAR, PE_APP_CTRL, _peEntry, out);
-  } else if (u < PE_ORB_END) {
-    const p = (u - PE_APP_END) / (PE_ORB_END - PE_APP_END);
-    const th = PE_TH0 + p * PE_SPINS * Math.PI * 2;
-    peOrbit(th, out);
-  } else {
-    const p = peEaseIn((u - PE_ORB_END) / (1 - PE_ORB_END));
-    peBezier(p, _peEntry, PE_RET_CTRL, PE_FAR, out);
-  }
-  return out;
-}
+const peClamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function PlanetExpressShip({ layerRef }) {
   const [gltf, setGltf] = useState(null);
   const groupRef = useRef();
   const engineLightRef = useRef();
   const bankRef = useRef(0);
+  const glowRef = useRef(1.5);
   const inFrontRef = useRef(true);  // current layer state (avoids redundant DOM writes)
   const url = `${process.env.PUBLIC_URL || ''}/assets/3d-models/futurama/scene.gltf`;
 
@@ -3393,50 +3388,50 @@ function PlanetExpressShip({ layerRef }) {
     });
   }, [url]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const g = groupRef.current;
     if (!g) return;
-    const u = (state.clock.elapsedTime % PE_CYCLE) / PE_CYCLE;
-    const du = 0.0015;
+    const dt = Math.min(delta, 0.05);  // clamp for tab-switch hitches
+    const t = (state.clock.elapsedTime % PE_CYCLE) / PE_CYCLE;
 
-    // Sample three points along the path to derive position + heading + turn.
-    pePath(u, _peA);
-    pePath((u + du) % 1, _peB);
-    pePath((u + 2 * du) % 1, _peC);
-    g.position.copy(_peA);
+    // Position + heading straight off the spline.
+    PE_CURVE.getPoint(t, _pePos);
+    PE_CURVE.getTangent(t, _peTan).normalize();
+    PE_CURVE.getTangent((t + PE_TANGENT_DT) % 1, _peTan2).normalize();
+    g.position.copy(_pePos);
 
-    // Depth flip: in front of Bender when nearer than the orbit centre,
-    // behind it when farther. Only touch the DOM when the state changes.
-    const shouldBeFront = _peA.z >= PE_FLIP_Z;
+    // Depth flip: in front of Bender when nearer than the orbit centre, behind
+    // it when farther. Only touch the DOM when the state actually changes.
+    const shouldBeFront = _pePos.z >= PE_FLIP_Z;
     if (shouldBeFront !== inFrontRef.current && layerRef && layerRef.current) {
       inFrontRef.current = shouldBeFront;
       layerRef.current.style.zIndex = shouldBeFront ? PE_Z_FRONT : PE_Z_BEHIND;
     }
 
-    // Nose follows direction of travel.
-    _peF1.copy(_peB).sub(_peA).normalize();
-    _peF2.copy(_peC).sub(_peB).normalize();
-    const yaw   = Math.atan2(_peF1.x, _peF1.z);
-    const pitch = Math.asin(peClamp(_peF1.y, -1, 1));
+    // Heading from the tangent.
+    const yaw   = Math.atan2(_peTan.x, _peTan.z);
+    const pitch = Math.asin(peClamp(_peTan.y, -1, 1));
 
-    // Bank into turns: horizontal component of the heading change.
-    const turn = _peF1.z * _peF2.x - _peF1.x * _peF2.z;
-    const targetBank = peClamp(turn * 9, -0.8, 0.8);
-    bankRef.current += (targetBank - bankRef.current) * 0.08; // smooth roll
+    // Bank into turns (three.js roller-coaster technique): roll proportional to
+    // the rate of heading change, leaning into the curve.
+    let headingChange = Math.atan2(_peTan2.x, _peTan2.z) - yaw;
+    if (headingChange >  Math.PI) headingChange -= Math.PI * 2;
+    if (headingChange < -Math.PI) headingChange += Math.PI * 2;
+    const turnRate = headingChange / PE_TANGENT_DT;   // ≈ d(yaw)/d(t)
+    const targetBank = peClamp(-Math.atan(turnRate * PE_BANK_GAIN), -PE_BANK_MAX, PE_BANK_MAX);
+    bankRef.current = THREE.MathUtils.damp(bankRef.current, targetBank, PE_ORIENT_DAMP, dt);
 
-    g.rotation.order = 'YXZ';
-    g.rotation.set(
-      -pitch + PE_PITCH_OFF,
-      yaw + PE_YAW_OFF,
-      bankRef.current + PE_ROLL_OFF
-    );
+    // Compose the target orientation and damp toward it for inertia/weight.
+    _peEuler.set(-pitch + PE_PITCH_OFF, yaw + PE_YAW_OFF, bankRef.current + PE_ROLL_OFF);
+    _peQuat.setFromEuler(_peEuler);
+    g.quaternion.slerp(_peQuat, 1 - Math.exp(-PE_ORIENT_DAMP * dt));
 
-    // Engine glow: flares on approach + boost, steady pulse during the orbit.
-    let glow;
-    if (u < PE_APP_END)      glow = 1.0 + (u / PE_APP_END) * 2.2;
-    else if (u >= PE_ORB_END) glow = 1.6 + ((u - PE_ORB_END) / (1 - PE_ORB_END)) * 3.0;
-    else                      glow = 1.5 + Math.sin(state.clock.elapsedTime * 8) * 0.25;
-    if (engineLightRef.current) engineLightRef.current.intensity = glow;
+    // Engine glow flares when the ship is accelerating away from the camera
+    // (boost) and on the deep-space leg; steady pulse while maneuvering.
+    const speedFlare = peClamp(-_peTan.z, 0, 1);            // nose pointing away ⇒ boosting out
+    const targetGlow = 1.4 + speedFlare * 2.6 + Math.sin(state.clock.elapsedTime * 8) * 0.2;
+    glowRef.current = THREE.MathUtils.damp(glowRef.current, targetGlow, PE_GLOW_DAMP, dt);
+    if (engineLightRef.current) engineLightRef.current.intensity = glowRef.current;
   });
 
   if (!gltf) return null;
