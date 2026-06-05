@@ -3271,6 +3271,188 @@ function FlyingAstronaut({ position = [0, 0, 0], size = 1 }) {
   );
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  Planet Express ship from Futurama (nave futurama by joao carlos g, CC-BY)
+//
+//  Flight plan (one continuous, seamless ~24 s loop):
+//    1. APPROACH — swoops in from deep space straight toward the camera,
+//       decelerating as it nears Bender.
+//    2. ORBIT    — flies TWO full revolutions around Bender. The orbit is
+//       tilted in the z-axis so the front of each loop comes very close to
+//       the camera (huge, painted on top of Bender) and the back swings far
+//       away (small) — reading as real depth around the 2-D image.
+//    3. RETREAT  — boosts back out into deep space, accelerating away.
+//  The loop's start and end share the same deep-space point, so it repeats
+//  with no visible cut. The nose always follows the direction of travel and
+//  the ship banks into its turns like a real aircraft.
+//
+//  Camera is at (0,0,30) looking toward −z, so world origin ≈ screen centre,
+//  which is where Bender's 2-D image sits.
+// ════════════════════════════════════════════════════════════════════════
+const PE_CYCLE   = 24;                            // seconds per full loop
+const PE_FAR     = new THREE.Vector3(-32, 15, -190); // deep-space staging point
+const PE_CENTER  = { x: 1, y: -1, z: -4 };        // orbit centre ≈ Bender
+const PE_RX      = 17;                             // orbit radius (left/right)
+const PE_RZ      = 15;                             // orbit depth (near/far)
+const PE_RY      = 2.5;                            // vertical bob amplitude
+const PE_TH0     = Math.PI;                        // orbit entry angle (far point)
+const PE_SPINS   = 2;                              // revolutions around Bender
+const PE_APP_END = 0.22;                           // approach done at 22 % of loop
+const PE_ORB_END = 0.74;                           // orbit done at 74 % of loop
+
+// Depth-based layering: the ship layer paints in front of Bender when nearer
+// than the orbit centre, and behind Bender when farther. The flip happens at
+// the orbit's left/right extremes (where the ship is off to the side of
+// Bender), so it is never visible as a pop.
+//
+// NOTE: Bender lives inside `.app__wrapper`, which is `position:relative;
+// z-index:1` and therefore forms its own stacking context. So at the ROOT
+// level Bender's whole subtree sits at z-index 1. To go BEHIND Bender the
+// ship layer must drop below 1 — z-index 0 puts it in the same band as the
+// background canvas (painted just above it via DOM order) but behind the
+// entire header. To go IN FRONT it rises above the navbar-free hero (7 > 1).
+const PE_Z_FRONT  = 7;            // above Bender (above the .app__wrapper context)
+const PE_Z_BEHIND = 0;            // below the .app__wrapper context → behind Bender
+const PE_FLIP_Z   = PE_CENTER.z;  // depth threshold = orbit centre
+
+// Model-orientation offsets — tuned so the ship's nose faces its travel
+// direction (the gltf's default facing is corrected here).
+const PE_YAW_OFF   = Math.PI / 2;
+const PE_PITCH_OFF = 0;
+const PE_ROLL_OFF  = 0;
+
+// Approach / retreat curve control points (give the in/out a sweeping arc).
+const PE_APP_CTRL = new THREE.Vector3(16, 6, -55);
+const PE_RET_CTRL = new THREE.Vector3(-16, 11, -70);
+
+// Reusable temporaries (single ship instance → safe to share at module scope).
+const _peA = new THREE.Vector3();
+const _peB = new THREE.Vector3();
+const _peC = new THREE.Vector3();
+const _peF1 = new THREE.Vector3();
+const _peF2 = new THREE.Vector3();
+const _peEntry = new THREE.Vector3();
+
+const peEaseOut = (p) => 1 - Math.pow(1 - p, 3);  // decelerate (approach)
+const peEaseIn  = (p) => p * p * p;               // accelerate (retreat)
+const peClamp   = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// Position on the orbit ellipse at angle th.
+function peOrbit(th, out) {
+  return out.set(
+    PE_CENTER.x + PE_RX * Math.sin(th),
+    PE_CENTER.y + PE_RY * Math.sin(th),
+    PE_CENTER.z + PE_RZ * Math.cos(th)
+  );
+}
+
+// Quadratic Bézier between p0 and p1 with control pc.
+function peBezier(p, p0, pc, p1, out) {
+  const m = 1 - p;
+  return out.set(
+    m * m * p0.x + 2 * m * p * pc.x + p * p * p1.x,
+    m * m * p0.y + 2 * m * p * pc.y + p * p * p1.y,
+    m * m * p0.z + 2 * m * p * pc.z + p * p * p1.z
+  );
+}
+
+// Full flight-path position at normalized loop time u ∈ [0,1).
+function pePath(u, out) {
+  peOrbit(PE_TH0, _peEntry);                       // shared orbit entry/exit point
+  if (u < PE_APP_END) {
+    const p = peEaseOut(u / PE_APP_END);
+    peBezier(p, PE_FAR, PE_APP_CTRL, _peEntry, out);
+  } else if (u < PE_ORB_END) {
+    const p = (u - PE_APP_END) / (PE_ORB_END - PE_APP_END);
+    const th = PE_TH0 + p * PE_SPINS * Math.PI * 2;
+    peOrbit(th, out);
+  } else {
+    const p = peEaseIn((u - PE_ORB_END) / (1 - PE_ORB_END));
+    peBezier(p, _peEntry, PE_RET_CTRL, PE_FAR, out);
+  }
+  return out;
+}
+
+function PlanetExpressShip({ layerRef }) {
+  const [gltf, setGltf] = useState(null);
+  const groupRef = useRef();
+  const engineLightRef = useRef();
+  const bankRef = useRef(0);
+  const inFrontRef = useRef(true);  // current layer state (avoids redundant DOM writes)
+  const url = `${process.env.PUBLIC_URL || ''}/assets/3d-models/futurama/scene.gltf`;
+
+  useEffect(() => {
+    const loader = new GLTFLoader();
+    loader.load(url, (result) => {
+      // Auto-normalize so the ship spans ~9 world units regardless of native scale.
+      const box = new THREE.Box3().setFromObject(result.scene);
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      if (maxDim > 0) result.scene.scale.setScalar(9 / maxDim);
+      setGltf(result);
+    });
+  }, [url]);
+
+  useFrame((state) => {
+    const g = groupRef.current;
+    if (!g) return;
+    const u = (state.clock.elapsedTime % PE_CYCLE) / PE_CYCLE;
+    const du = 0.0015;
+
+    // Sample three points along the path to derive position + heading + turn.
+    pePath(u, _peA);
+    pePath((u + du) % 1, _peB);
+    pePath((u + 2 * du) % 1, _peC);
+    g.position.copy(_peA);
+
+    // Depth flip: in front of Bender when nearer than the orbit centre,
+    // behind it when farther. Only touch the DOM when the state changes.
+    const shouldBeFront = _peA.z >= PE_FLIP_Z;
+    if (shouldBeFront !== inFrontRef.current && layerRef && layerRef.current) {
+      inFrontRef.current = shouldBeFront;
+      layerRef.current.style.zIndex = shouldBeFront ? PE_Z_FRONT : PE_Z_BEHIND;
+    }
+
+    // Nose follows direction of travel.
+    _peF1.copy(_peB).sub(_peA).normalize();
+    _peF2.copy(_peC).sub(_peB).normalize();
+    const yaw   = Math.atan2(_peF1.x, _peF1.z);
+    const pitch = Math.asin(peClamp(_peF1.y, -1, 1));
+
+    // Bank into turns: horizontal component of the heading change.
+    const turn = _peF1.z * _peF2.x - _peF1.x * _peF2.z;
+    const targetBank = peClamp(turn * 9, -0.8, 0.8);
+    bankRef.current += (targetBank - bankRef.current) * 0.08; // smooth roll
+
+    g.rotation.order = 'YXZ';
+    g.rotation.set(
+      -pitch + PE_PITCH_OFF,
+      yaw + PE_YAW_OFF,
+      bankRef.current + PE_ROLL_OFF
+    );
+
+    // Engine glow: flares on approach + boost, steady pulse during the orbit.
+    let glow;
+    if (u < PE_APP_END)      glow = 1.0 + (u / PE_APP_END) * 2.2;
+    else if (u >= PE_ORB_END) glow = 1.6 + ((u - PE_ORB_END) / (1 - PE_ORB_END)) * 3.0;
+    else                      glow = 1.5 + Math.sin(state.clock.elapsedTime * 8) * 0.25;
+    if (engineLightRef.current) engineLightRef.current.intensity = glow;
+  });
+
+  if (!gltf) return null;
+
+  return (
+    <group ref={groupRef}>
+      <primitive object={gltf.scene} />
+      {/* Dedicated lights so the ship is always well-lit on the overlay canvas */}
+      <ambientLight intensity={1.8} />
+      <directionalLight intensity={2.5} position={[5, 8, 5]} color="#ffffff" />
+      <directionalLight intensity={1.0} position={[-5, -2, -3]} color="#aaddff" />
+      {/* Blue engine glow from the rear nozzles */}
+      <pointLight ref={engineLightRef} color="#55bbff" intensity={1.5} distance={18} position={[0, -1.5, 2]} />
+    </group>
+  );
+}
 
 // Iconic Coca-Cola inspired contour bottle
 function FlyingColaBottle({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, colaType = 0 }) {
@@ -5560,6 +5742,9 @@ function SimpleSpaceScene() {
         />
       ))}
 
+      {/* Planet Express Ship is rendered in its own foreground overlay
+          canvas (see SimpleSpace below) so it can fly ON TOP of Bender. */}
+
       {/* Black Monolith (2001: A Space Odyssey) */}
       <BlackMonolith isDarkMode={isDarkMode} />
 
@@ -5661,28 +5846,56 @@ function SimpleSpaceScene() {
 
 // Main component
 const SimpleSpace = () => {
+  // Shared camera config — the background and foreground canvases use the SAME
+  // camera so world coordinates line up across both layers.
+  const cameraConfig = { position: [0, 0, 30], fov: 50, near: 0.1, far: 1000 };
+
+  // The ship's overlay canvas flips its z-index between "in front of Bender"
+  // and "behind Bender" depending on the ship's depth, so the ship genuinely
+  // orbits AROUND the 2-D image. The ship component drives this ref directly
+  // each frame (no React re-render).
+  const shipLayerRef = useRef();
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      zIndex: 0,
-      pointerEvents: 'none'
-    }}>
-      <Canvas
-        camera={{ 
-          position: [0, 0, 30],
-          fov: 50,
-          near: 0.1,
-          far: 1000
+    <>
+      {/* ── Background layer (z-index 0): stars, ships, astronaut, etc. ── */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }}>
+        <Canvas camera={cameraConfig} style={{ background: 'transparent' }}>
+          <SimpleSpaceScene />
+        </Canvas>
+      </div>
+
+      {/* ── Ship layer: the Planet Express ship. Its z-index is toggled every
+            frame between PE_Z_FRONT (above Bender, z-index 5 → ship covers
+            Bender) and PE_Z_BEHIND (below Bender → Bender occludes the ship),
+            giving a true orbit-around-the-image effect. Both values sit below
+            the navbar (z-index 1000). pointerEvents:none keeps the page
+            fully clickable. ── */}
+      <div
+        ref={shipLayerRef}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: PE_Z_FRONT,
+          pointerEvents: 'none'
         }}
-        style={{ background: 'transparent' }}
       >
-        <SimpleSpaceScene />
-      </Canvas>
-    </div>
+        <Canvas camera={cameraConfig} style={{ background: 'transparent' }} gl={{ alpha: true }}>
+          <PlanetExpressShip layerRef={shipLayerRef} />
+        </Canvas>
+      </div>
+    </>
   );
 };
 
