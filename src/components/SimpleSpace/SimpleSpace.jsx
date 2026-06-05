@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import * as THREE from 'three';
 
 // Beautiful sci-fi cartoon spaceship
@@ -3196,325 +3197,80 @@ function FlyingMeltingClock({ position = [0, 0, 0], velocity = [0, 0, 1], size =
   );
 }
 
-// Sci-Fi Literature Inspired Astronaut (Clarke, Gibson, Asimov)
-function FlyingAstronaut({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, astronautType = 0 }) {
-  const astronautRef = useRef();
-  const jetpackRef = useRef();
-  const limbbRef = useRef();
-  const visorGlowRef = useRef();
-  const sensorPodRef = useRef();
+function FlyingAstronaut({ position = [0, 0, 0], size = 1 }) {
+  const [gltf, setGltf] = useState(null);
+  const groupRef = useRef();
+  const mixerRef = useRef();
+  const url = `${process.env.PUBLIC_URL || ''}/assets/3d-models/astronaut/astronaut.glb`;
 
-  useFrame((state) => {
-    if (astronautRef.current) {
+  useEffect(() => {
+    const loader = new GLTFLoader();
+    loader.register((parser) => ({
+      name: 'KHR_materials_pbrSpecularGlossiness',
+      getMaterialType(materialIndex) {
+        const matDef = parser.json.materials[materialIndex];
+        if (!matDef.extensions?.KHR_materials_pbrSpecularGlossiness) return null;
+        return THREE.MeshStandardMaterial;
+      },
+      extendMaterialParams(materialIndex, materialParams) {
+        const matDef = parser.json.materials[materialIndex];
+        const ext = matDef.extensions?.KHR_materials_pbrSpecularGlossiness;
+        if (!ext) return Promise.resolve();
+        const pending = [];
+        if (ext.diffuseFactor) {
+          materialParams.color = new THREE.Color().setRGB(
+            ext.diffuseFactor[0], ext.diffuseFactor[1], ext.diffuseFactor[2]
+          );
+          materialParams.opacity = ext.diffuseFactor[3] ?? 1;
+        }
+        materialParams.roughness = ext.glossinessFactor != null ? 1.0 - ext.glossinessFactor : 1.0;
+        materialParams.metalness = 0;
+        if (ext.diffuseTexture != null) {
+          pending.push(
+            parser.assignTexture(materialParams, 'map', ext.diffuseTexture, THREE.SRGBColorSpace)
+          );
+        }
+        return Promise.all(pending);
+      }
+    }));
+    loader.load(url, (result) => setGltf(result));
+  }, [url]);
+
+  useEffect(() => {
+    if (!gltf) return;
+    const mixer = new THREE.AnimationMixer(gltf.scene);
+    mixerRef.current = mixer;
+    if (gltf.animations.length > 0) {
+      mixer.clipAction(gltf.animations[0]).play();
+    }
+    return () => {
+      mixer.stopAllAction();
+      mixerRef.current = null;
+    };
+  }, [gltf]);
+
+  useFrame((state, delta) => {
+    if (mixerRef.current) mixerRef.current.update(delta);
+    if (groupRef.current) {
       const time = state.clock.elapsedTime;
-      astronautRef.current.position.x = Math.sin(time * 0.3) * 25;
-      astronautRef.current.position.y = Math.sin(time * 0.2) * 15;
-      astronautRef.current.position.z = -20;
-      astronautRef.current.rotation.z = Math.sin(time * 0.7) * 0.15;
-      astronautRef.current.rotation.x = Math.sin(time * 0.5) * 0.1;
-      astronautRef.current.rotation.y = Math.sin(time * 0.4) * 0.08;
-      if (jetpackRef.current) {
-        const thrust = Math.sin(time * 12) * 0.15 + 1;
-        jetpackRef.current.scale.setScalar(thrust);
-      }
-      if (visorGlowRef.current) {
-        visorGlowRef.current.material.opacity = Math.sin(time * 3) * 0.25 + 0.35;
-      }
-      if (sensorPodRef.current) {
-        sensorPodRef.current.rotation.y += 0.02;
-      }
-      if (limbbRef.current) {
-        limbbRef.current.rotation.z = Math.sin(time * 2) * 0.2;
-      }
+      groupRef.current.position.x = Math.sin(time * 0.3) * 25;
+      groupRef.current.position.y = Math.sin(time * 0.2) * 15;
+      groupRef.current.position.z = -20;
+      groupRef.current.rotation.z = Math.sin(time * 0.7) * 0.15;
+      groupRef.current.rotation.x = Math.sin(time * 0.5) * 0.1;
+      groupRef.current.rotation.y = Math.sin(time * 0.4) * 0.08;
     }
   });
 
-  // Sci-fi literature color schemes
-  const astronautSchemes = [
-    { // Clarke / 2001 — clean white EMU
-      suit: '#efefef', helmet: '#f4f4ff', visor: '#1a6eb5', visorGlow: '#4db8ff',
-      details: '#cc3300', neon: '#00ffaa', jetpack: '#55556a', thrust: '#44aaff',
-      tanks: '#aaaaaa', belt: '#666677', patches: ['#cc0000', '#0055cc', '#00cc66']
-    },
-    { // Gibson / Cyberpunk — dark navy, hot neon
-      suit: '#1a1a2e', helmet: '#16213e', visor: '#e94560', visorGlow: '#ff0055',
-      details: '#00d4ff', neon: '#ff00ff', jetpack: '#0f3460', thrust: '#e94560',
-      tanks: '#1a1a2e', belt: '#0f3460', patches: ['#e94560', '#00d4ff', '#ff00ff']
-    },
-    { // Asimov / Foundation — silver-chrome, gold
-      suit: '#c0c8d8', helmet: '#d0d8e8', visor: '#2266bb', visorGlow: '#88bbff',
-      details: '#ffaa00', neon: '#ffcc44', jetpack: '#8899aa', thrust: '#ffaa44',
-      tanks: '#9aabbb', belt: '#778899', patches: ['#ffaa00', '#2266bb', '#ffffff']
-    }
-  ];
-
-  const colors = astronautSchemes[astronautType % astronautSchemes.length];
+  if (!gltf) return null;
 
   return (
-    <group ref={astronautRef} position={position}>
-      {/* ── Torso ── */}
-      <mesh position={[0, 0, 0]}>
-        <cylinderGeometry args={[size * 0.32, size * 0.38, size * 0.9, 12]} />
-        <meshBasicMaterial color={colors.suit} />
-      </mesh>
-      {/* Chest PLSS panel */}
-      <mesh position={[0, size * 0.15, size * 0.34]}>
-        <boxGeometry args={[size * 0.45, size * 0.35, size * 0.04]} />
-        <meshBasicMaterial color={colors.details} />
-      </mesh>
-      {/* PLSS display screen */}
-      <mesh position={[0, size * 0.2, size * 0.37]}>
-        <boxGeometry args={[size * 0.3, size * 0.15, size * 0.01]} />
-        <meshBasicMaterial color={colors.visorGlow} transparent opacity={0.8} />
-      </mesh>
-      {/* Control buttons */}
-      {[...Array(4)].map((_, i) => (
-        <mesh key={i} position={[(i - 1.5) * size * 0.08, size * 0.05, size * 0.375]}>
-          <cylinderGeometry args={[size * 0.025, size * 0.025, size * 0.02, 8]} />
-          <meshBasicMaterial color={i % 2 === 0 ? colors.neon : '#ff3300'} />
-        </mesh>
-      ))}
-      {/* Ribbed pressure rings on torso */}
-      {[-0.15, 0.0, 0.15].map((y, i) => (
-        <mesh key={i} position={[0, y * size, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[size * 0.34, size * 0.022, 6, 16]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-      ))}
-      {/* Mission patch left */}
-      <mesh position={[size * 0.3, size * 0.25, size * 0.18]} rotation={[0, -0.5, 0]}>
-        <circleGeometry args={[size * 0.08, 8]} />
-        <meshBasicMaterial color={colors.patches[0]} />
-      </mesh>
-      {/* Mission patch right */}
-      <mesh position={[-size * 0.3, size * 0.25, size * 0.18]} rotation={[0, 0.5, 0]}>
-        <circleGeometry args={[size * 0.08, 8]} />
-        <meshBasicMaterial color={colors.patches[1]} />
-      </mesh>
-      {/* Flag patch */}
-      <mesh position={[size * 0.3, size * 0.1, size * 0.28]} rotation={[0, -0.5, 0]}>
-        <boxGeometry args={[size * 0.12, size * 0.07, size * 0.01]} />
-        <meshBasicMaterial color={colors.patches[2]} />
-      </mesh>
-
-      {/* ── Helmet ── */}
-      <mesh position={[0, size * 0.75, 0]}>
-        <sphereGeometry args={[size * 0.28, 16, 12]} />
-        <meshBasicMaterial color={colors.helmet} transparent opacity={0.95} />
-      </mesh>
-      {/* Neck ring */}
-      <mesh position={[0, size * 0.55, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[size * 0.24, size * 0.04, 8, 20]} />
-        <meshBasicMaterial color={colors.details} />
-      </mesh>
-      {/* Main visor */}
-      <mesh position={[0, size * 0.78, size * 0.17]}>
-        <sphereGeometry args={[size * 0.24, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
-        <meshBasicMaterial color={colors.visor} transparent opacity={0.75} />
-      </mesh>
-      {/* HUD visor glow */}
-      <mesh ref={visorGlowRef} position={[0, size * 0.78, size * 0.15]}>
-        <sphereGeometry args={[size * 0.21, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
-        <meshBasicMaterial color={colors.visorGlow} transparent opacity={0.35} />
-      </mesh>
-      {/* Helmet rear vent strips */}
-      {[-0.1, 0, 0.1].map((x, i) => (
-        <mesh key={i} position={[x * size, size * 0.75, -size * 0.2]}>
-          <boxGeometry args={[size * 0.06, size * 0.25, size * 0.02]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-      ))}
-      {/* Helmet side lights */}
-      <mesh position={[size * 0.27, size * 0.8, 0]}>
-        <sphereGeometry args={[size * 0.04, 6, 6]} />
-        <meshBasicMaterial color={colors.neon} />
-      </mesh>
-      <mesh position={[-size * 0.27, size * 0.8, 0]}>
-        <sphereGeometry args={[size * 0.04, 6, 6]} />
-        <meshBasicMaterial color={colors.neon} />
-      </mesh>
-      {/* Antenna + tip */}
-      <mesh position={[size * 0.12, size * 1.03, 0]} rotation={[0, 0, Math.PI / 8]}>
-        <cylinderGeometry args={[size * 0.012, size * 0.012, size * 0.22, 6]} />
-        <meshBasicMaterial color={colors.details} />
-      </mesh>
-      <mesh position={[size * 0.14, size * 1.15, 0]}>
-        <sphereGeometry args={[size * 0.025, 6, 6]} />
-        <meshBasicMaterial color={colors.neon} />
-      </mesh>
-      {/* Camera mount */}
-      <mesh position={[size * 0.18, size * 0.85, size * 0.24]}>
-        <cylinderGeometry args={[size * 0.035, size * 0.035, size * 0.07, 8]} />
-        <meshBasicMaterial color="#222222" />
-      </mesh>
-
-      {/* ── Shoulder joints ── */}
-      <mesh position={[size * 0.38, size * 0.3, 0]} rotation={[Math.PI / 2, 0, Math.PI / 2]}>
-        <torusGeometry args={[size * 0.1, size * 0.035, 8, 12]} />
-        <meshBasicMaterial color={colors.details} />
-      </mesh>
-      <mesh position={[-size * 0.38, size * 0.3, 0]} rotation={[Math.PI / 2, 0, Math.PI / 2]}>
-        <torusGeometry args={[size * 0.1, size * 0.035, 8, 12]} />
-        <meshBasicMaterial color={colors.details} />
-      </mesh>
-      {/* Sensor pods (spinning) */}
-      <group ref={sensorPodRef}>
-        <mesh position={[size * 0.38, size * 0.44, 0]}>
-          <cylinderGeometry args={[size * 0.05, size * 0.04, size * 0.12, 8]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        <mesh position={[-size * 0.38, size * 0.44, 0]}>
-          <cylinderGeometry args={[size * 0.05, size * 0.04, size * 0.12, 8]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-      </group>
-
-      {/* ── Utility belt ── */}
-      <mesh position={[0, size * -0.42, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[size * 0.3, size * 0.06, 8, 20]} />
-        <meshBasicMaterial color={colors.belt} />
-      </mesh>
-      {[0, Math.PI / 3, -Math.PI / 3, Math.PI * 2 / 3].map((angle, i) => (
-        <mesh key={i} position={[Math.sin(angle) * size * 0.32, size * -0.42, Math.cos(angle) * size * 0.32]}>
-          <boxGeometry args={[size * 0.09, size * 0.09, size * 0.08]} />
-          <meshBasicMaterial color={i === 0 ? colors.neon : colors.details} />
-        </mesh>
-      ))}
-
-      {/* ── Arms ── */}
-      <group ref={limbbRef}>
-        <mesh position={[size * 0.45, size * 0.12, 0]} rotation={[0, 0, Math.PI / 7]}>
-          <cylinderGeometry args={[size * 0.1, size * 0.1, size * 0.42, 10]} />
-          <meshBasicMaterial color={colors.suit} />
-        </mesh>
-        <mesh position={[size * 0.58, size * -0.09, 0]} rotation={[Math.PI / 2, 0, Math.PI / 2]}>
-          <torusGeometry args={[size * 0.09, size * 0.03, 6, 12]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        <mesh position={[size * 0.58, size * -0.22, 0]} rotation={[0, 0, Math.PI / 12]}>
-          <cylinderGeometry args={[size * 0.08, size * 0.08, size * 0.3, 10]} />
-          <meshBasicMaterial color={colors.suit} />
-        </mesh>
-        <mesh position={[size * 0.6, size * -0.4, 0]}>
-          <sphereGeometry args={[size * 0.1, 10, 8]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        <mesh position={[-size * 0.45, size * 0.12, 0]} rotation={[0, 0, -Math.PI / 7]}>
-          <cylinderGeometry args={[size * 0.1, size * 0.1, size * 0.42, 10]} />
-          <meshBasicMaterial color={colors.suit} />
-        </mesh>
-        <mesh position={[-size * 0.58, size * -0.09, 0]} rotation={[Math.PI / 2, 0, Math.PI / 2]}>
-          <torusGeometry args={[size * 0.09, size * 0.03, 6, 12]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        <mesh position={[-size * 0.58, size * -0.22, 0]} rotation={[0, 0, -Math.PI / 12]}>
-          <cylinderGeometry args={[size * 0.08, size * 0.08, size * 0.3, 10]} />
-          <meshBasicMaterial color={colors.suit} />
-        </mesh>
-        <mesh position={[-size * 0.6, size * -0.4, 0]}>
-          <sphereGeometry args={[size * 0.1, 10, 8]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-
-        {/* Hip joints */}
-        <mesh position={[size * 0.16, size * -0.52, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[size * 0.12, size * 0.03, 6, 12]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        <mesh position={[-size * 0.16, size * -0.52, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[size * 0.12, size * 0.03, 6, 12]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        {/* Upper legs */}
-        <mesh position={[size * 0.16, size * -0.7, 0]} rotation={[Math.PI / 12, 0, 0]}>
-          <cylinderGeometry args={[size * 0.12, size * 0.11, size * 0.5, 10]} />
-          <meshBasicMaterial color={colors.suit} />
-        </mesh>
-        <mesh position={[size * 0.18, size * -1.0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[size * 0.1, size * 0.03, 6, 12]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        <mesh position={[size * 0.17, size * -1.2, 0]}>
-          <cylinderGeometry args={[size * 0.1, size * 0.1, size * 0.4, 10]} />
-          <meshBasicMaterial color={colors.suit} />
-        </mesh>
-        <mesh position={[size * 0.17, size * -1.45, size * 0.05]}>
-          <boxGeometry args={[size * 0.15, size * 0.18, size * 0.28]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        <mesh position={[size * 0.17, size * -1.55, -size * 0.06]}>
-          <cylinderGeometry args={[size * 0.05, size * 0.08, size * 0.06, 8]} />
-          <meshBasicMaterial color={colors.neon} transparent opacity={0.7} />
-        </mesh>
-        <mesh position={[-size * 0.16, size * -0.7, 0]} rotation={[-Math.PI / 12, 0, 0]}>
-          <cylinderGeometry args={[size * 0.12, size * 0.11, size * 0.5, 10]} />
-          <meshBasicMaterial color={colors.suit} />
-        </mesh>
-        <mesh position={[-size * 0.18, size * -1.0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[size * 0.1, size * 0.03, 6, 12]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        <mesh position={[-size * 0.17, size * -1.2, 0]}>
-          <cylinderGeometry args={[size * 0.1, size * 0.1, size * 0.4, 10]} />
-          <meshBasicMaterial color={colors.suit} />
-        </mesh>
-        <mesh position={[-size * 0.17, size * -1.45, size * 0.05]}>
-          <boxGeometry args={[size * 0.15, size * 0.18, size * 0.28]} />
-          <meshBasicMaterial color={colors.details} />
-        </mesh>
-        <mesh position={[-size * 0.17, size * -1.55, -size * 0.06]}>
-          <cylinderGeometry args={[size * 0.05, size * 0.08, size * 0.06, 8]} />
-          <meshBasicMaterial color={colors.neon} transparent opacity={0.7} />
-        </mesh>
-      </group>
-
-      {/* ── PLSS Backpack ── */}
-      <mesh position={[0, size * 0.12, -size * 0.44]}>
-        <boxGeometry args={[size * 0.42, size * 0.72, size * 0.24]} />
-        <meshBasicMaterial color={colors.jetpack} />
-      </mesh>
-      {/* O2 tanks */}
-      <mesh position={[size * 0.24, size * 0.05, -size * 0.5]}>
-        <cylinderGeometry args={[size * 0.07, size * 0.07, size * 0.65, 10]} />
-        <meshBasicMaterial color={colors.tanks} />
-      </mesh>
-      <mesh position={[-size * 0.24, size * 0.05, -size * 0.5]}>
-        <cylinderGeometry args={[size * 0.07, size * 0.07, size * 0.65, 10]} />
-        <meshBasicMaterial color={colors.tanks} />
-      </mesh>
-      {/* PLSS antenna */}
-      <mesh position={[0, size * 0.52, -size * 0.44]}>
-        <cylinderGeometry args={[size * 0.015, size * 0.015, size * 0.18, 6]} />
-        <meshBasicMaterial color={colors.details} />
-      </mesh>
-
-      {/* ── Jetpack thrusters ── */}
-      <group ref={jetpackRef}>
-        <mesh position={[-size * 0.14, size * -0.3, -size * 0.6]}>
-          <cylinderGeometry args={[size * 0.045, size * 0.07, size * 0.15, 8]} />
-          <meshBasicMaterial color={colors.thrust} transparent opacity={0.8} />
-        </mesh>
-        <mesh position={[size * 0.14, size * -0.3, -size * 0.6]}>
-          <cylinderGeometry args={[size * 0.045, size * 0.07, size * 0.15, 8]} />
-          <meshBasicMaterial color={colors.thrust} transparent opacity={0.8} />
-        </mesh>
-        <mesh position={[-size * 0.14, size * -0.46, -size * 0.6]}>
-          <coneGeometry args={[size * 0.06, size * 0.18, 6]} />
-          <meshBasicMaterial color={colors.neon} transparent opacity={0.6} />
-        </mesh>
-        <mesh position={[size * 0.14, size * -0.46, -size * 0.6]}>
-          <coneGeometry args={[size * 0.06, size * 0.18, 6]} />
-          <meshBasicMaterial color={colors.neon} transparent opacity={0.6} />
-        </mesh>
-      </group>
-      {/* Tether cable */}
-      <mesh position={[size * 0.2, size * 0.05, -size * 0.7]} rotation={[Math.PI / 5, 0, Math.PI / 6]}>
-        <cylinderGeometry args={[size * 0.012, size * 0.012, size * 0.4, 4]} />
-        <meshBasicMaterial color="#ffddaa" />
-      </mesh>
+    <group ref={groupRef} position={position} scale={[size, size, size]}>
+      <primitive object={gltf.scene} />
     </group>
   );
 }
+
 
 // Iconic Coca-Cola inspired contour bottle
 function FlyingColaBottle({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, colaType = 0 }) {
