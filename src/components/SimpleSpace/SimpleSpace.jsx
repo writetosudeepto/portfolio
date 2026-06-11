@@ -3274,32 +3274,52 @@ function FlyingAstronaut({ position = [0, 0, 0], size = 1 }) {
 // ════════════════════════════════════════════════════════════════════════
 //  Planet Express ship from Futurama (nave futurama by joao carlos g, CC-BY)
 //
-//  Flight plan (one continuous, seamless loop):
-//    1. APPROACH — swoops in from deep space toward Bender.
-//    2. ORBIT    — flies TWO revolutions around Bender. The orbit is tilted in
-//       z so the front of each loop comes close to the camera (huge, painted
-//       on top of Bender) and the back swings far away (small, behind Bender)
-//       — reading as real depth around the 2-D image.
-//    3. RETREAT  — boosts back out into deep space, then loops.
+//  Flight plans are RANDOMIZED and regenerated every cycle — two modes:
+//    • ORBIT  — swoops in from deep space and loops Bender with random radii,
+//      revolution count, direction, entry angle, orbital-plane tilt and
+//      per-way-point wobble. Radii clamp to the live viewport, so the orbit
+//      tightens automatically on narrow/mobile screens.
+//    • WANDER — a random tour through the background junk field; collisions
+//      with the floating debris are resolved with impulse physics (see
+//      PhysicsDebrisField), so the ship punts junk out of its way.
+//  Each plan ends at a fresh deep-space staging point that seeds the next
+//  plan, so consecutive paths chain seamlessly.
 //
-//  The whole journey is a single closed CatmullRom spline. Position comes from
-//  curve.getPoint(t) (denser way-points around the orbit ⇒ the ship naturally
-//  spends most of the loop maneuvering near Bender and blitzes the empty
-//  deep-space leg). Heading follows curve.getTangent(t); the ship banks into
-//  its turns using the heading-change technique from three.js' roller-coaster
-//  example, and all orientation is damped for inertia/weight.
+//  Every plan is a CatmullRom spline sampled by ARC LENGTH (getPointAt) so
+//  travel speed never jumps at way-point boundaries. A C1-continuous Hermite
+//  speed profile drives the sampling: the ship eases out of deep space, holds
+//  a steady cruise through the middle leg, then accelerates smoothly into the
+//  boost-out — classic cartoon slow-in/slow-out. Heading follows
+//  curve.getTangentAt; the ship banks into its turns using the heading-change
+//  technique from three.js' roller-coaster example, all orientation is damped
+//  for inertia/weight, the hull stretches along its nose with speed (squash &
+//  stretch), and thruster flames fire in periodic bursts when it moves fast
+//  or swoops close — for that hand-animated Futurama feel.
 //
 //  Camera is at (0,0,30) looking toward −z, so world origin ≈ screen centre,
 //  which is where Bender's 2-D image sits.
 // ════════════════════════════════════════════════════════════════════════
-const PE_CYCLE   = 20;                       // seconds per full loop
 const PE_CENTER  = { x: 1, y: -1, z: -4 };   // orbit centre ≈ Bender
-const PE_RX      = 17;                        // orbit radius (left/right)
-const PE_RZ      = 15;                        // orbit depth (near/far)
-const PE_RY      = 2.5;                       // vertical bob amplitude
-const PE_TH0     = Math.PI;                   // orbit entry angle (far/back point)
-const PE_SPINS   = 2;                         // revolutions around Bender
-const PE_PTS_PER_SPIN = 8;                    // orbit way-points per revolution
+const PE_PTS_PER_SPIN = 16;                  // orbit way-points per revolution (denser ⇒ rounder orbit)
+const PE_ORBIT_CHANCE = 0.6;                 // odds a new plan is an orbit (vs background wander)
+
+// Background junk field shared by the ship's wander mode and the physics sim.
+const PE_DEBRIS_Z     = [-120, -18];         // depth band of the junk field
+const PE_DEBRIS_Z_MID = -60;                 // representative depth for viewport sizing
+const PE_DEBRIS_COUNT = 12;
+const PE_RESTITUTION  = 0.8;                 // bounciness of debris collisions
+
+// Live ship kinematics, shared with the background canvas so the debris
+// field can react to the ship (separate <Canvas>es can't share one scene).
+const PE_SHARED = {
+  pos: new THREE.Vector3(0, 0, -9999),
+  vel: new THREE.Vector3(),
+  radius: 4.5,
+  active: false,
+};
+
+const peRand = (a, b) => a + Math.random() * (b - a);
+const pePick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // Depth-based layering: the ship layer paints in front of Bender when nearer
 // than the orbit centre, and behind Bender when farther. The flip happens at
@@ -3331,32 +3351,131 @@ const PE_TANGENT_DT  = 0.004; // look-ahead along the curve for heading change
 const PE_ORIENT_DAMP = 6;     // orientation smoothing (higher = snappier)
 const PE_GLOW_DAMP   = 4;     // engine-glow smoothing
 
-// Build the flight path once: a single closed CatmullRom spline through
-// deep-space → swoop-in → 2 orbit loops → boost-out way-points.
-function buildShipCurve() {
-  const C = PE_CENTER;
-  const pts = [
-    new THREE.Vector3(-34, 16, -195),  // deep-space staging point
-    new THREE.Vector3(-14, 9, -110),   // swoop-in
-    new THREE.Vector3(6, 3, -55),      // approach into the orbit's far point
-  ];
-  // Two orbit loops around Bender (tilted ellipse in the x/z plane).
-  const n = PE_SPINS * PE_PTS_PER_SPIN;
-  for (let k = 0; k < n; k++) {
-    const th = PE_TH0 + (k / PE_PTS_PER_SPIN) * Math.PI * 2;
-    pts.push(new THREE.Vector3(
-      C.x + PE_RX * Math.sin(th),
-      C.y + PE_RY * Math.sin(th),
-      C.z + PE_RZ * Math.cos(th)
-    ));
-  }
-  // Boost-out; the closed spline links the last point back to the first
-  // through deep space (off-screen), so the loop is seamless.
-  pts.push(new THREE.Vector3(-8, 11, -60));
-  pts.push(new THREE.Vector3(-28, 16, -135));
-  return new THREE.CatmullRomCurve3(pts, true, 'centripetal', 0.5);
+// Squash & stretch (cartoon principle): hull elongates along the nose axis
+// when blitzing the deep-space legs, relaxes to 1:1 while cruising the orbit.
+const PE_STRETCH_GAIN = 0.12; // stretch per unit of speed above cruise
+const PE_STRETCH_MAX  = 1.35; // max nose-axis elongation
+const PE_STRETCH_DAMP = 5;    // stretch smoothing
+
+// Thruster flames: fire in periodic bursts ("time interval"), flaring hardest
+// when the ship is moving fast and/or swooping close to the camera.
+const PE_BURST_RATE = 2.4;    // burst pulse frequency (rad/s)
+const PE_FLAME_DAMP = 9;      // flame response smoothing
+
+// ── Flight-plan factory ─────────────────────────────────────────────────────
+// Every cycle gets a brand-new randomized CatmullRom path, sampled by arc
+// length with a C1 Hermite speed profile (slopes match at every phase
+// boundary), so velocity is continuous everywhere: ease out of deep space →
+// steady cruise (orbit / debris tour) → smooth boost back out.
+
+// Visible half-extents of the viewport at depth z. Keeps flight plans inside
+// the screen on any device — on a narrow phone the orbit tightens automatically.
+function peViewHalf(camera, z) {
+  const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * (camera.position.z - z);
+  return { halfW: halfH * camera.aspect, halfH };
 }
-const PE_CURVE = buildShipCurve();
+
+// Cubic Hermite from (t0, u0, slope s0) to (t1, u1, slope s1).
+function peHermite(t, t0, t1, u0, u1, s0, s1) {
+  const h = t1 - t0, x = (t - t0) / h, x2 = x * x, x3 = x2 * x;
+  return (2 * x3 - 3 * x2 + 1) * u0 + (x3 - 2 * x2 + x) * h * s0
+       + (-2 * x3 + 3 * x2) * u1 + (x3 - x2) * h * s1;
+}
+
+function peBuildPlan(camera, startPos) {
+  const mode = Math.random() < PE_ORBIT_CHANCE ? 'orbit' : 'wander';
+  const C = PE_CENTER;
+  const pts = [startPos.clone()];
+  let entryIdx, exitIdx, cruiseShare;
+
+  if (mode === 'orbit') {
+    // ORBIT — loop Bender with random radii, revolutions, direction, entry
+    // angle, orbital-plane tilt and per-way-point wobble.
+    const { halfW, halfH } = peViewHalf(camera, C.z);
+    const rx    = Math.min(peRand(13, 19), halfW * 0.82);
+    const rz    = peRand(10, 16);
+    const spins = pePick([1, 2, 2, 3]);
+    const dir   = Math.random() < 0.5 ? 1 : -1;
+    const th0   = peRand(0, Math.PI * 2);
+    const ry1   = peRand(1.5, Math.min(6, halfH * 0.35));        // orbital-plane tilt
+    const ry2   = peRand(-1, 1) * Math.min(4, halfH * 0.25);     // slow vertical precession
+
+    // Swoop-in via a jittered midpoint between staging and the orbit.
+    pts.push(new THREE.Vector3(
+      (startPos.x + C.x) / 2 + peRand(-12, 12),
+      (startPos.y + C.y) / 2 + peRand(-4, 8),
+      (startPos.z + C.z) / 2 + peRand(-15, 15)
+    ));
+    entryIdx = pts.length;
+    const n = spins * PE_PTS_PER_SPIN;
+    for (let k = 0; k < n; k++) {
+      const th  = th0 + dir * (k / PE_PTS_PER_SPIN) * Math.PI * 2;
+      const wob = peRand(0.88, 1.12);  // organic per-way-point wobble
+      pts.push(new THREE.Vector3(
+        C.x + rx * wob * Math.sin(th),
+        C.y + ry1 * Math.sin(th) + ry2 * Math.cos(th * 0.5),
+        C.z + rz * wob * Math.cos(th)
+      ));
+    }
+    exitIdx = pts.length - 1;
+    cruiseShare = peRand(0.62, 0.75);
+  } else {
+    // WANDER — random tour through the background junk field; the physics
+    // sim (PhysicsDebrisField) punts any debris the ship plows through.
+    const { halfW, halfH } = peViewHalf(camera, PE_DEBRIS_Z_MID);
+    entryIdx = 1;
+    const nWay = 5 + Math.floor(Math.random() * 4);
+    for (let k = 0; k < nWay; k++) {
+      pts.push(new THREE.Vector3(
+        peRand(-0.85, 0.85) * halfW,
+        peRand(-0.7, 0.7) * halfH,
+        peRand(PE_DEBRIS_Z[0] + 10, PE_DEBRIS_Z[1])
+      ));
+    }
+    exitIdx = pts.length - 1;
+    cruiseShare = peRand(0.7, 0.8);
+  }
+
+  // Boost out to a fresh deep-space staging point — it seeds the next plan,
+  // so consecutive paths chain with no visible jump.
+  pts.push(new THREE.Vector3(peRand(-40, 40), peRand(6, 20), peRand(-200, -150)));
+  pts.push(new THREE.Vector3(peRand(-45, 45), peRand(8, 22), peRand(-260, -210)));
+
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.5);
+  curve.arcLengthDivisions = 512;
+  const lengths = curve.getLengths(512);
+  const total   = lengths[512];
+
+  // Arc-length fraction of way-point i (open curve ⇒ point i sits at t = i/(N−1)).
+  const uOf = (i) => {
+    const x = (i / (pts.length - 1)) * 512;
+    const j = Math.min(Math.floor(x), 511);
+    return (lengths[j] + (lengths[j + 1] - lengths[j]) * (x - j)) / total;
+  };
+  const uEntry = uOf(entryIdx);
+  const uExit  = uOf(exitIdx);
+
+  // Both deep-space legs share one fast cruise speed so the profile stays C1.
+  const sDeep   = (uEntry + 1 - uExit) / (1 - cruiseShare);
+  const sCruise = (uExit - uEntry) / cruiseShare;
+  const tA = uEntry / sDeep;        // time the approach ends / cruise begins
+  const tB = tA + cruiseShare;      // time the cruise ends / retreat begins
+
+  return {
+    curve,
+    mode,
+    cycle: mode === 'orbit' ? peRand(16, 24) : peRand(12, 18),  // seconds
+    sCruise,
+    timeToU: (t) => {
+      if (t <= 0) return 0;
+      if (t >= 1) return 1;
+      if (t < tA) return peHermite(t, 0, tA, 0, uEntry, sDeep, sCruise);
+      if (t < tB) return uEntry + sCruise * (t - tA);
+      return peHermite(t, tB, 1, uExit, 1, sCruise, sDeep);
+    },
+  };
+}
+const PE_SPEED_EPS = 0.002;  // finite-difference step for the du/dt speed read-out
 
 // Reusable temporaries (single ship instance → safe to share at module scope).
 const _pePos   = new THREE.Vector3();
@@ -3373,7 +3492,32 @@ function PlanetExpressShip({ layerRef }) {
   const engineLightRef = useRef();
   const bankRef = useRef(0);
   const glowRef = useRef(1.5);
+  const stretchRef = useRef(1);
   const inFrontRef = useRef(true);  // current layer state (avoids redundant DOM writes)
+  const planRef = useRef(null);     // current randomized flight plan
+  const tRef = useRef(0);           // progress through the current plan [0,1)
+  const prevPosRef = useRef(null);  // last frame's position (for velocity sharing)
+  const flameRef = useRef();        // thruster exhaust group
+  const flameLightRef = useRef();
+  const flameLvlRef = useRef(0);
+  const flameSpriteRefs = useRef([]);
+  const nozzleGlowRef = useRef();
+  const flameAnchorRef = useRef([0, -0.2, 3.1]);  // replaced by the true nozzle position on load
+  const [sparkTex, setSparkTex] = useState(null);
+
+  // Exhaust particle pool — three tonal layers (white-hot core → amber →
+  // deep orange), rendered as additive billboard sprites of spark1.png
+  // (flame sprite from the official three.js repo, MIT license).
+  const flameParticles = useMemo(() => Array.from({ length: 40 }, (_, i) => ({
+    life: Math.random(),             // staggered so the plume is continuous
+    speed: peRand(0.8, 1.4),
+    ox: peRand(-0.5, 0.5),           // radial spawn jitter
+    oy: peRand(-0.4, 0.4),
+    wob: peRand(0, Math.PI * 2),     // turbulence phase
+    size: i < 12 ? 1.1 : i < 26 ? 1.6 : 2.1,
+    alpha: i < 12 ? 1 : i < 26 ? 0.85 : 0.6,
+    color: i < 12 ? '#fff7c4' : i < 26 ? '#ffb347' : '#ff5a1f',
+  })), []);
   const url = `${process.env.PUBLIC_URL || ''}/assets/3d-models/futurama/scene.gltf`;
 
   useEffect(() => {
@@ -3384,21 +3528,70 @@ function PlanetExpressShip({ layerRef }) {
       const size = box.getSize(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z);
       if (maxDim > 0) result.scene.scale.setScalar(9 / maxDim);
+      // Anchor the thruster at the model's TRUE engine nozzle. The gltf names
+      // the engine 'moptor' and its nozzle exit ring 'moptor_canhao'
+      // (Portuguese: motor / barrel). The tail fin sweeps ~120 model units
+      // further back than the nozzle, so the overall bounding box is NOT a
+      // usable anchor (it floats the flame high and far behind the engine).
+      result.scene.updateMatrixWorld(true);
+      let nozzle = null;
+      result.scene.traverse((o) => {
+        if (!nozzle && /moptor/i.test(o.name) && /canhao/i.test(o.name)) nozzle = o;
+      });
+      const aBox = new THREE.Box3().setFromObject(nozzle || result.scene);
+      const aC = aBox.getCenter(new THREE.Vector3());
+      // Nozzle ring: flame starts at the ring's exit plane (max.z), centred on
+      // the ring. Fallback (no nozzle node): rear of the hull at its centre.
+      flameAnchorRef.current = [aC.x, aC.y, aBox.max.z];
       setGltf(result);
     });
   }, [url]);
+
+  useEffect(() => {
+    new THREE.TextureLoader().load(
+      `${process.env.PUBLIC_URL || ''}/assets/textures/spark1.png`,
+      setSparkTex
+    );
+  }, []);
 
   useFrame((state, delta) => {
     const g = groupRef.current;
     if (!g) return;
     const dt = Math.min(delta, 0.05);  // clamp for tab-switch hitches
-    const t = (state.clock.elapsedTime % PE_CYCLE) / PE_CYCLE;
 
-    // Position + heading straight off the spline.
-    PE_CURVE.getPoint(t, _pePos);
-    PE_CURVE.getTangent(t, _peTan).normalize();
-    PE_CURVE.getTangent((t + PE_TANGENT_DT) % 1, _peTan2).normalize();
+    // Lazily create / cycle flight plans — each one freshly randomized, and
+    // each new plan starts where the old one ended (seamless chaining).
+    let plan = planRef.current;
+    if (!plan) {
+      plan = planRef.current = peBuildPlan(state.camera, new THREE.Vector3(-34, 16, -195));
+    }
+    tRef.current += dt / plan.cycle;
+    if (tRef.current >= 1) {
+      plan.curve.getPointAt(1, _pePos);  // end of the old path seeds the new one
+      plan = planRef.current = peBuildPlan(state.camera, _pePos);
+      tRef.current = 0;
+    }
+    const t = tRef.current;
+    const u = plan.timeToU(t);
+    const dudt = (plan.timeToU(Math.min(t + PE_SPEED_EPS, 1)) - u) / PE_SPEED_EPS;  // path speed (avg ≈ 1)
+
+    // Position + heading off the arc-length-parameterized spline — uniform
+    // sampling means zero speed pops between way-points.
+    plan.curve.getPointAt(u, _pePos);
+    plan.curve.getTangentAt(u, _peTan).normalize();
+    plan.curve.getTangentAt(Math.min(u + PE_TANGENT_DT, 1), _peTan2).normalize();
     g.position.copy(_pePos);
+
+    // Share live kinematics with the background junk field (separate canvas)
+    // so it can resolve ship↔debris collisions.
+    if (prevPosRef.current) {
+      PE_SHARED.vel.copy(_pePos).sub(prevPosRef.current).divideScalar(Math.max(dt, 1e-4));
+    } else {
+      prevPosRef.current = new THREE.Vector3().copy(_pePos);
+    }
+    prevPosRef.current.copy(_pePos);
+    PE_SHARED.pos.copy(_pePos);
+    PE_SHARED.active = true;
 
     // Depth flip: in front of Bender when nearer than the orbit centre, behind
     // it when farther. Only touch the DOM when the state actually changes.
@@ -3417,7 +3610,7 @@ function PlanetExpressShip({ layerRef }) {
     let headingChange = Math.atan2(_peTan2.x, _peTan2.z) - yaw;
     if (headingChange >  Math.PI) headingChange -= Math.PI * 2;
     if (headingChange < -Math.PI) headingChange += Math.PI * 2;
-    const turnRate = headingChange / PE_TANGENT_DT;   // ≈ d(yaw)/d(t)
+    const turnRate = (headingChange / PE_TANGENT_DT) * dudt;   // ≈ d(yaw)/dt, speed-aware
     const targetBank = peClamp(-Math.atan(turnRate * PE_BANK_GAIN), -PE_BANK_MAX, PE_BANK_MAX);
     bankRef.current = THREE.MathUtils.damp(bankRef.current, targetBank, PE_ORIENT_DAMP, dt);
 
@@ -3426,12 +3619,63 @@ function PlanetExpressShip({ layerRef }) {
     _peQuat.setFromEuler(_peEuler);
     g.quaternion.slerp(_peQuat, 1 - Math.exp(-PE_ORIENT_DAMP * dt));
 
-    // Engine glow flares when the ship is accelerating away from the camera
-    // (boost) and on the deep-space leg; steady pulse while maneuvering.
-    const speedFlare = peClamp(-_peTan.z, 0, 1);            // nose pointing away ⇒ boosting out
+    // Squash & stretch: elongate the hull along its nose axis as it blitzes
+    // the deep-space legs; relax to 1:1 while cruising around Bender.
+    const targetStretch = peClamp(1 + (dudt / plan.sCruise - 1) * PE_STRETCH_GAIN, 1, PE_STRETCH_MAX);
+    stretchRef.current = THREE.MathUtils.damp(stretchRef.current, targetStretch, PE_STRETCH_DAMP, dt);
+    const squash = 1 / Math.sqrt(stretchRef.current);  // thin out to roughly preserve volume
+    g.scale.set(squash, squash, stretchRef.current);
+
+    // Engine glow flares with actual path speed — bright afterburner on the
+    // deep-space blitz, steady pulse while maneuvering around Bender.
+    const speedFlare = peClamp((dudt / plan.sCruise - 1) * 0.6, 0, 1);
     const targetGlow = 1.4 + speedFlare * 2.6 + Math.sin(state.clock.elapsedTime * 8) * 0.2;
     glowRef.current = THREE.MathUtils.damp(glowRef.current, targetGlow, PE_GLOW_DAMP, dt);
     if (engineLightRef.current) engineLightRef.current.intensity = glowRef.current;
+
+    // Thruster flames: fire in periodic bursts ("time interval"), flaring
+    // hardest when the ship is moving fast and/or swooping near the camera.
+    const burstWave = Math.sin(state.clock.elapsedTime * PE_BURST_RATE) * 0.5 + 0.5;
+    const burst = THREE.MathUtils.smoothstep(burstWave, 0.35, 0.75);
+    const closeness = peClamp((_pePos.z + 6) / 16, 0, 1);  // ≈1 on the orbit's near pass
+    const flameTarget = (0.45 + 0.55 * Math.max(speedFlare, closeness)) * (0.4 + 0.6 * burst);
+    flameLvlRef.current = THREE.MathUtils.damp(flameLvlRef.current, flameTarget, PE_FLAME_DAMP, dt);
+    const flame = flameLvlRef.current;
+    if (flameRef.current) {
+      flameRef.current.visible = flame > 0.05;
+      // Advance the exhaust particles: each sprite is born at the nozzle,
+      // streams backward (+Z) with radial spread + turbulence wobble, and
+      // shrinks/fades out — throttle (flame) drives speed, length & opacity.
+      const time = state.clock.elapsedTime;
+      for (let i = 0; i < flameParticles.length; i++) {
+        const p = flameParticles[i];
+        const s = flameSpriteRefs.current[i];
+        if (!s) continue;
+        p.life += dt * p.speed * (1.2 + flame * 2.2);
+        if (p.life >= 1) {
+          p.life %= 1;
+          p.ox = peRand(-0.5, 0.5);
+          p.oy = peRand(-0.4, 0.4);
+        }
+        const lf = p.life;
+        const spread = 0.25 + lf * 1.1;
+        s.position.set(
+          p.ox * spread + Math.sin(time * 13 + p.wob) * 0.12 * lf,
+          p.oy * spread + Math.sin(time * 11 + p.wob) * 0.12 * lf,
+          lf * (3.5 + flame * 4.5)
+        );
+        const sc = p.size * (0.5 + lf * 1.6) * (0.5 + flame * 0.9);
+        s.scale.set(sc, sc, 1);
+        s.material.opacity = flame * p.alpha * (1 - lf) * (1 - lf);
+      }
+      // Nozzle flash pulses with the throttle.
+      if (nozzleGlowRef.current) {
+        const ns = 1.1 + flame * 1.4;
+        nozzleGlowRef.current.scale.set(ns, ns, 1);
+        nozzleGlowRef.current.material.opacity = flame * 0.9;
+      }
+    }
+    if (flameLightRef.current) flameLightRef.current.intensity = flame * 7;
   });
 
   if (!gltf) return null;
@@ -3439,6 +3683,25 @@ function PlanetExpressShip({ layerRef }) {
   return (
     <group ref={groupRef}>
       <primitive object={gltf.scene} />
+
+      {/* Thruster exhaust — game-style additive particle plume built from
+          the three.js spark sprite (MIT). Anchored at the rear nozzle (nose
+          is −Z, so the stream trails along +Z); driven per-frame above. */}
+      {sparkTex && (
+        <group ref={flameRef} position={flameAnchorRef.current} visible={false}>
+          {flameParticles.map((p, i) => (
+            <sprite key={`fp-${i}`} ref={(el) => { flameSpriteRefs.current[i] = el; }}>
+              <spriteMaterial map={sparkTex} color={p.color} transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
+            </sprite>
+          ))}
+          {/* blue-white flash right at the nozzle */}
+          <sprite ref={nozzleGlowRef} position={[0, 0, 0.15]}>
+            <spriteMaterial map={sparkTex} color="#bfe6ff" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
+          </sprite>
+          <pointLight ref={flameLightRef} color="#ff9a3d" intensity={0} distance={22} position={[0, 0, 1.5]} />
+        </group>
+      )}
+
       {/* Dedicated lights so the ship is always well-lit on the overlay canvas */}
       <ambientLight intensity={1.8} />
       <directionalLight intensity={2.5} position={[5, 8, 5]} color="#ffffff" />
@@ -3446,6 +3709,170 @@ function PlanetExpressShip({ layerRef }) {
       {/* Blue engine glow from the rear nozzles */}
       <pointLight ref={engineLightRef} color="#55bbff" intensity={1.5} distance={18} position={[0, -1.5, 2]} />
     </group>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  Physics junk field — floating cartoon debris on random wander paths with
+//  REAL collision physics: impulse-based elastic sphere collisions between
+//  the pieces, plus ship↔debris collisions (the Planet Express ship is
+//  kinematic — it stays on its spline — so the junk gets punted while the
+//  ship plows through). Runs on the background canvas; the ship's live
+//  kinematics arrive via PE_SHARED since the two canvases can't share a scene.
+// ════════════════════════════════════════════════════════════════════════
+const _dbN    = new THREE.Vector3();
+const _dbRel  = new THREE.Vector3();
+const _dbKick = new THREE.Vector3();
+
+const DEBRIS_ROCK_COLORS  = ['#9b8f82', '#8a7f74', '#a89a88', '#7f7468'];
+const DEBRIS_CRATE_COLORS = ['#b5651d', '#8d6e3f', '#a0522d'];
+
+function PhysicsDebrisField() {
+  const refs = useRef([]);
+
+  const bodies = useMemo(() => {
+    const arr = [];
+    for (let i = 0; i < PE_DEBRIS_COUNT; i++) {
+      const kind = i % 3;  // 0 asteroid, 1 cargo crate, 2 Slurm canister
+      const radius = kind === 0 ? peRand(1.6, 3) : peRand(1.2, 2);
+      arr.push({
+        kind,
+        radius,
+        mass: radius * radius * radius,  // ∝ volume ⇒ big rocks barely budge
+        pos: new THREE.Vector3(peRand(-50, 50), peRand(-26, 26), peRand(PE_DEBRIS_Z[0], PE_DEBRIS_Z[1])),
+        vel: new THREE.Vector3(peRand(-2, 2), peRand(-1.5, 1.5), peRand(-2, 2)),
+        angVel: new THREE.Vector3(peRand(-0.5, 0.5), peRand(-0.5, 0.5), peRand(-0.5, 0.5)),
+        rot: new THREE.Euler(peRand(0, Math.PI * 2), peRand(0, Math.PI * 2), 0),
+        seed: peRand(0.6, 1.6),
+        phase: peRand(0, Math.PI * 2),
+        color: kind === 0 ? pePick(DEBRIS_ROCK_COLORS) : kind === 1 ? pePick(DEBRIS_CRATE_COLORS) : '#69d025',
+      });
+    }
+    return arr;
+  }, []);
+
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, 0.05);
+    const time = state.clock.elapsedTime;
+
+    // 1) Integrate: smooth pseudo-random wander + soft field walls + drag.
+    for (const b of bodies) {
+      b.vel.x += Math.sin(time * 0.31 * b.seed + b.phase) * 1.2 * dt;
+      b.vel.y += Math.sin(time * 0.43 * b.seed + b.phase * 2.1) * 0.9 * dt;
+      b.vel.z += Math.cos(time * 0.37 * b.seed + b.phase * 1.3) * 1.2 * dt;
+      // Soft walls spring the piece back when it drifts out of the field.
+      b.vel.x += (peClamp(b.pos.x, -52, 52) - b.pos.x) * 1.5 * dt;
+      b.vel.y += (peClamp(b.pos.y, -28, 28) - b.pos.y) * 1.5 * dt;
+      b.vel.z += (peClamp(b.pos.z, PE_DEBRIS_Z[0], PE_DEBRIS_Z[1]) - b.pos.z) * 1.5 * dt;
+      // Drag bleeds collision energy back down to a lazy drift.
+      if (b.vel.lengthSq() > 36) b.vel.multiplyScalar(Math.exp(-0.5 * dt));
+      b.pos.addScaledVector(b.vel, dt);
+      b.rot.x += b.angVel.x * dt;
+      b.rot.y += b.angVel.y * dt;
+      b.rot.z += b.angVel.z * dt;
+      b.angVel.multiplyScalar(Math.exp(-0.15 * dt));
+    }
+
+    // 2) Debris↔debris: impulse-based elastic sphere collisions.
+    for (let i = 0; i < bodies.length; i++) {
+      const b1 = bodies[i];
+      for (let j = i + 1; j < bodies.length; j++) {
+        const b2 = bodies[j];
+        _dbN.copy(b2.pos).sub(b1.pos);
+        const minD = b1.radius + b2.radius;
+        const d2 = _dbN.lengthSq();
+        if (d2 === 0 || d2 > minD * minD) continue;
+        const d = Math.sqrt(d2);
+        _dbN.divideScalar(d);                      // contact normal b1→b2
+        const w1 = b2.mass / (b1.mass + b2.mass);  // mass-weighted de-penetration
+        b1.pos.addScaledVector(_dbN, -(minD - d) * w1);
+        b2.pos.addScaledVector(_dbN, (minD - d) * (1 - w1));
+        _dbRel.copy(b1.vel).sub(b2.vel);
+        const vn = _dbRel.dot(_dbN);
+        if (vn <= 0) continue;                     // already separating
+        const imp = ((1 + PE_RESTITUTION) * vn) / (1 / b1.mass + 1 / b2.mass);
+        b1.vel.addScaledVector(_dbN, -imp / b1.mass);
+        b2.vel.addScaledVector(_dbN, imp / b2.mass);
+        _dbKick.crossVectors(_dbN, _dbRel);        // glancing hits add tumble
+        b1.angVel.addScaledVector(_dbKick, (imp / b1.mass) * 0.12);
+        b2.angVel.addScaledVector(_dbKick, -(imp / b2.mass) * 0.12);
+      }
+    }
+
+    // 3) Ship↔debris: the ship is an infinite-mass kinematic sphere — junk
+    //    bounces off with restitution + the ship's own momentum.
+    if (PE_SHARED.active) {
+      for (const b of bodies) {
+        _dbN.copy(b.pos).sub(PE_SHARED.pos);
+        const minD = b.radius + PE_SHARED.radius;
+        const d2 = _dbN.lengthSq();
+        if (d2 === 0 || d2 > minD * minD) continue;
+        _dbN.divideScalar(Math.sqrt(d2));
+        b.pos.copy(PE_SHARED.pos).addScaledVector(_dbN, minD);  // shove clear of the hull
+        _dbRel.copy(b.vel).sub(PE_SHARED.vel);
+        const vn = _dbRel.dot(_dbN);
+        if (vn >= 0) continue;
+        b.vel.addScaledVector(_dbN, -(1 + PE_RESTITUTION) * vn);
+        if (b.vel.length() > 26) b.vel.setLength(26);  // cap fly-by launches
+        _dbKick.crossVectors(_dbN, _dbRel);
+        b.angVel.addScaledVector(_dbKick, 0.06);
+        if (b.angVel.length() > 5) b.angVel.setLength(5);
+      }
+    }
+
+    // 4) Commit the simulation to the meshes.
+    for (let i = 0; i < bodies.length; i++) {
+      const m = refs.current[i];
+      if (!m) continue;
+      m.position.copy(bodies[i].pos);
+      m.rotation.copy(bodies[i].rot);
+    }
+  });
+
+  return (
+    <>
+      {bodies.map((b, i) => (
+        <group key={`debris-${i}`} ref={(el) => { refs.current[i] = el; }}>
+          {b.kind === 0 && (
+            <mesh>
+              <dodecahedronGeometry args={[b.radius, 0]} />
+              <meshBasicMaterial color={b.color} />
+            </mesh>
+          )}
+          {b.kind === 1 && (
+            <>
+              <mesh>
+                <boxGeometry args={[b.radius * 1.5, b.radius * 1.5, b.radius * 1.5]} />
+                <meshBasicMaterial color={b.color} />
+              </mesh>
+              {/* strapping band */}
+              <mesh>
+                <boxGeometry args={[b.radius * 1.55, b.radius * 0.3, b.radius * 1.55]} />
+                <meshBasicMaterial color="#3a3a3a" />
+              </mesh>
+            </>
+          )}
+          {b.kind === 2 && (
+            <>
+              <mesh>
+                <cylinderGeometry args={[b.radius * 0.65, b.radius * 0.65, b.radius * 1.7, 10]} />
+                <meshBasicMaterial color={b.color} />
+              </mesh>
+              {/* lid */}
+              <mesh position={[0, b.radius * 0.85, 0]}>
+                <cylinderGeometry args={[b.radius * 0.45, b.radius * 0.65, b.radius * 0.25, 10]} />
+                <meshBasicMaterial color="#cfd8dc" />
+              </mesh>
+              {/* label band */}
+              <mesh>
+                <cylinderGeometry args={[b.radius * 0.66, b.radius * 0.66, b.radius * 0.5, 10]} />
+                <meshBasicMaterial color="#e8f5e9" />
+              </mesh>
+            </>
+          )}
+        </group>
+      ))}
+    </>
   );
 }
 
@@ -5736,6 +6163,11 @@ function SimpleSpaceScene() {
           colaType={bottle.type}
         />
       ))}
+
+      {/* Physics junk field — wandering debris with impulse collision physics;
+          the Planet Express ship punts pieces aside whenever its wander route
+          crosses the field (ship kinematics shared via PE_SHARED). */}
+      <PhysicsDebrisField />
 
       {/* Planet Express Ship is rendered in its own foreground overlay
           canvas (see SimpleSpace below) so it can fly ON TOP of Bender. */}
