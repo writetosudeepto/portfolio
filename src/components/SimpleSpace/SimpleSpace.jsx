@@ -2693,8 +2693,9 @@ function FlyingAstronaut({ position = [0, 0, 0], size = 1 }) {
 //      real ellipse on screen — one pass swings past him low and large in
 //      the foreground, the return arcs high and small behind) with random
 //      radii, revolution count, direction, entry angle, incline and
-//      per-way-point wobble. Radii clamp to the live viewport, so the orbit
-//      tightens automatically on narrow/mobile screens.
+//      per-way-point wobble. Bender clearance is a HARD floor on the radius;
+//      the viewport is only a soft cap — on narrow/mobile screens the orbit
+//      grows past the screen edges rather than shrinking onto Bender.
 //    • WANDER — a random tour through the deep background space.
 //  Each plan ends at a fresh deep-space staging point that seeds the next
 //  plan, so consecutive paths chain seamlessly.
@@ -2808,11 +2809,14 @@ const PE_BENDER = {
 
 function peBenderRect(camera) {
   const { halfW, halfH } = peViewHalf(camera, PE_CENTER.z);
-  const clear = Math.min(2.5, halfW * 0.12);   // ship-hull clearance
+  // On portrait/mobile screens the image fills most of the viewport width,
+  // so the collision rectangle widens proportionally.
+  const fhw = camera.aspect < 1 ? 0.38 : PE_BENDER.fhw;
+  const clear = Math.max(2, halfW * 0.12);     // ship-hull clearance
   return {
     cx: PE_BENDER.fx * halfW,
     cy: PE_BENDER.fy * halfH,
-    hw: PE_BENDER.fhw * halfW + clear,
+    hw: fhw * halfW + clear,
     hh: PE_BENDER.fhh * halfH + clear,
   };
 }
@@ -2859,7 +2863,14 @@ function peBuildPlan(camera, startPos, forceMode) {
       (C.x - (rect.cx - rect.hw) + 1) / 0.98,
       ((rect.cx + rect.hw) - C.x + 1) / 0.98
     );
-    const rx    = Math.min(peRand(rxNeed, Math.max(rxNeed + 3, 19)), halfW * 0.82);
+    // Bender clearance is a HARD floor; the viewport is only a soft cap. On
+    // narrow/mobile screens the orbit grows past the viewport edges instead
+    // of shrinking onto Bender — flying off-screen looks fine, overlapping
+    // him reads as a glitch.
+    const rx    = Math.max(
+      Math.min(peRand(rxNeed + 1, Math.max(rxNeed + 5, 21)), halfW * 0.82),
+      rxNeed
+    );
     const rz    = peRand(10, 16);
     const spins = pePick([1, 2, 2, 3]);
     const dir   = Math.random() < 0.5 ? 1 : -1;
