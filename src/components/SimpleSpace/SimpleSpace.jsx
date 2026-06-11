@@ -2688,8 +2688,11 @@ function FlyingAstronaut({ position = [0, 0, 0], size = 1 }) {
 //  Planet Express ship from Futurama (nave futurama by joao carlos g, CC-BY)
 //
 //  Flight plans are RANDOMIZED and regenerated every cycle — two modes:
-//    • ORBIT  — swoops in from deep space and loops Bender with random radii,
-//      revolution count, direction, entry angle, orbital-plane tilt and
+//    • ORBIT  — swoops in from deep space and loops Bender on an inclined
+//      ELLIPTICAL orbit (x and y run 90° out of phase, so the path traces a
+//      real ellipse on screen — one pass swings past him low and large in
+//      the foreground, the return arcs high and small behind) with random
+//      radii, revolution count, direction, entry angle, incline and
 //      per-way-point wobble. Radii clamp to the live viewport, so the orbit
 //      tightens automatically on narrow/mobile screens.
 //    • WANDER — a random tour through the deep background space.
@@ -2863,8 +2866,14 @@ function peBuildPlan(camera, startPos, forceMode) {
     // Enter and exit the loop BEHIND Bender (far half of the orbit), so the
     // approach/retreat legs never have to punch through the image plane.
     const th0   = Math.PI + peRand(-Math.PI / 3, Math.PI / 3);
-    const ry1   = peRand(1.5, Math.min(6, halfH * 0.35));        // orbital-plane tilt
-    const ry2   = peRand(-1, 1) * Math.min(4, halfH * 0.25);     // slow vertical precession
+    // Elliptical orbit: the vertical term runs 90° out of phase with x, so
+    // the path traces a real ellipse around Bender on screen instead of a
+    // flat line. The ellipse is inclined in depth — one pass swings past him
+    // low and large in the foreground, the return arcs high and small behind
+    // (or the mirror image, per yPh).
+    const ry    = peRand(0.32, 0.5) * Math.min(halfH * 0.9, rx);  // vertical semi-axis
+    const yPh   = Math.random() < 0.5 ? 1 : -1;                   // incline direction
+    const ry2   = peRand(-1, 1) * Math.min(3, halfH * 0.2);       // slow vertical precession
 
     // Swoop-in via a jittered midpoint between staging and the orbit.
     pts.push(new THREE.Vector3(
@@ -2879,7 +2888,7 @@ function peBuildPlan(camera, startPos, forceMode) {
       const wob = peRand(0.88, 1.12);  // organic per-way-point wobble
       pts.push(new THREE.Vector3(
         C.x + rx * wob * Math.sin(th),
-        C.y + ry1 * Math.sin(th) + ry2 * Math.cos(th * 0.5),
+        C.y + yPh * ry * Math.cos(th) + ry2 * Math.cos(th * 0.5),
         C.z + rz * wob * Math.cos(th)
       ));
     }
