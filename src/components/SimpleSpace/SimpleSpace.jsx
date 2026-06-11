@@ -2752,6 +2752,8 @@ const PE_PITCH_OFF = 0;
 const PE_ROLL_OFF  = 0;
 
 // Maneuver tuning.
+const PE_MAX_SLOPE   = 0.5;   // max climb/dive ratio per wander step (≈26° glide slope)
+const PE_PITCH_MAX   = 0.45;  // hard cap on nose pitch (rad ≈ 26°) — no vertical maneuvers
 const PE_BANK_GAIN   = 0.15;  // how hard the ship rolls into a turn
 const PE_BANK_MAX    = 0.85;  // max bank angle (rad)
 const PE_TANGENT_DT  = 0.004; // look-ahead along the curve for heading change
@@ -2884,16 +2886,25 @@ function peBuildPlan(camera, startPos, forceMode) {
     exitIdx = pts.length - 1;
     cruiseShare = peRand(0.62, 0.75);
   } else {
-    // WANDER — random tour through the deep background space.
+    // WANDER — a flowing aircraft-style tour through the deep background.
+    // Way-points sweep across the screen in ONE direction with bounded
+    // random-walk altitude and depth, and every altitude change is capped to
+    // a gentle glide slope against the horizontal step — the ship cruises
+    // and banks; it never climbs or dives vertically.
     const { halfW, halfH } = peViewHalf(camera, PE_DEBRIS_Z_MID);
     entryIdx = 1;
     const nWay = 5 + Math.floor(Math.random() * 4);
+    const sweep = Math.random() < 0.5 ? 1 : -1;              // tour direction
+    let wx = -sweep * 0.8 * halfW;
+    let wy = peRand(-0.45, 0.45) * halfH;
+    let wz = peRand(PE_DEBRIS_Z[0] + 25, PE_DEBRIS_Z[1] - 15);
     for (let k = 0; k < nWay; k++) {
-      pts.push(new THREE.Vector3(
-        peRand(-0.85, 0.85) * halfW,
-        peRand(-0.7, 0.7) * halfH,
-        peRand(PE_DEBRIS_Z[0] + 10, PE_DEBRIS_Z[1])
-      ));
+      pts.push(new THREE.Vector3(wx, wy, wz));
+      const stepX = (1.6 * halfW / nWay) * peRand(0.7, 1.3);  // steady sideways progress
+      wx += sweep * stepX;
+      const maxClimb = stepX * PE_MAX_SLOPE;                  // glide-slope cap
+      wy = peClamp(wy + peRand(-maxClimb, maxClimb), -0.6 * halfH, 0.6 * halfH);
+      wz = peClamp(wz + peRand(-30, 30), PE_DEBRIS_Z[0] + 10, PE_DEBRIS_Z[1]);
     }
     exitIdx = pts.length - 1;
     cruiseShare = peRand(0.7, 0.8);
@@ -3069,7 +3080,10 @@ function PlanetExpressShip({ layerRef }) {
 
     // Heading from the tangent.
     const yaw   = Math.atan2(_peTan.x, _peTan.z);
-    const pitch = Math.asin(peClamp(_peTan.y, -1, 1));
+    // Pitch follows the path slope but is hard-capped: even on the steepest
+    // spline segment the ship reads as a banking cruiser, never a rocket
+    // pointing straight up/down.
+    const pitch = peClamp(Math.asin(peClamp(_peTan.y, -1, 1)), -PE_PITCH_MAX, PE_PITCH_MAX);
 
     // Bank into turns (three.js roller-coaster technique): roll proportional to
     // the rate of heading change, leaning into the curve.
