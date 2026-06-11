@@ -2760,7 +2760,7 @@ const PE_PITCH_MAX   = 0.45;  // hard cap on nose pitch (rad ≈ 26°) — no ve
 const PE_BANK_GAIN   = 0.15;  // how hard the ship rolls into a turn
 const PE_BANK_MAX    = 0.85;  // max bank angle (rad)
 const PE_TANGENT_DT  = 0.004; // look-ahead along the curve for heading change
-const PE_ORIENT_DAMP = 6;     // orientation smoothing (higher = snappier)
+const PE_ORIENT_DAMP = 4.5;   // orientation smoothing (higher = snappier, lower = calmer)
 const PE_GLOW_DAMP   = 4;     // engine-glow smoothing
 
 // Squash & stretch (cartoon principle): hull elongates along the nose axis
@@ -2853,11 +2853,11 @@ function peBuildPlan(camera, startPos, forceMode) {
     const rect  = peBenderRect(camera);
     // Radius floor: the orbit's image-plane crossings (the ±90° points where
     // the ship slips between in-front and behind) must clear Bender's flat
-    // surface SIDEWAYS — never through it. /0.88 covers worst-case wobble.
+    // surface SIDEWAYS — never through it. /0.98 covers worst-case wobble.
     const rxNeed = Math.max(
       13,
-      (C.x - (rect.cx - rect.hw) + 1) / 0.88,
-      ((rect.cx + rect.hw) - C.x + 1) / 0.88
+      (C.x - (rect.cx - rect.hw) + 1) / 0.98,
+      ((rect.cx + rect.hw) - C.x + 1) / 0.98
     );
     const rx    = Math.min(peRand(rxNeed, Math.max(rxNeed + 3, 19)), halfW * 0.82);
     const rz    = peRand(10, 16);
@@ -2885,7 +2885,8 @@ function peBuildPlan(camera, startPos, forceMode) {
     const n = spins * PE_PTS_PER_SPIN;
     for (let k = 0; k < n; k++) {
       const th  = th0 + dir * (k / PE_PTS_PER_SPIN) * Math.PI * 2;
-      const wob = peRand(0.88, 1.12);  // organic per-way-point wobble
+      const wob = peRand(0.98, 1.02);  // subtle organic variation — anything
+                                       // larger ripples the loop and reads as shaking
       pts.push(new THREE.Vector3(
         C.x + rx * wob * Math.sin(th),
         C.y + yPh * ry * Math.cos(th) + ry2 * Math.cos(th * 0.5),
