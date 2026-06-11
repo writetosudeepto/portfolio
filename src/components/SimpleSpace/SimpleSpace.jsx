@@ -2610,593 +2610,6 @@ function MoebiusBlackHole({ position = [0, 0, 0], velocity = [0, 0, 0.1], size =
   );
 }
 
-// Moebius-style flying beer bottle
-function FlyingBeerBottle({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, beerType = 0 }) {
-  const beerRef = useRef();
-  const wingsRef = useRef();
-  const bottleRef = useRef();
-  const foamRef = useRef();
-
-  useFrame((state) => {
-    if (beerRef.current) {
-      // Move through space
-      beerRef.current.position.z += velocity[2];
-      beerRef.current.position.x += velocity[0] * 0.06;
-      beerRef.current.position.y += velocity[1] * 0.06;
-
-      // Flying motion - gentle bobbing
-      beerRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.8 + position[0] * 0.3) * 0.15;
-      beerRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.6) * 0.08;
-      beerRef.current.position.y += Math.sin(state.clock.elapsedTime * 1.2 + position[1] * 0.4) * 0.025;
-
-      // Wings flapping
-      if (wingsRef.current) {
-        const flapSpeed = Math.sin(state.clock.elapsedTime * 6) * 0.3;
-        wingsRef.current.rotation.z = flapSpeed;
-      }
-
-      // Beer contents sloshing
-      if (bottleRef.current) {
-        bottleRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.05;
-      }
-
-      // Foam bubbling effect
-      if (foamRef.current) {
-        const bubble = Math.sin(state.clock.elapsedTime * 3) * 0.05 + 1;
-        foamRef.current.scale.setScalar(bubble);
-      }
-
-      // Reset when out of view
-      if (beerRef.current.position.z > 60) {
-        const newX = (Math.random() - 0.5) * 60;
-        const newY = (Math.random() - 0.5) * 30 + 10;
-        const newZ = -120 - Math.random() * 60;
-        
-        beerRef.current.position.set(newX, newY, newZ);
-      }
-    }
-  });
-
-  // Realistic beer bottle types
-  const beerSchemes = [
-    {
-      bottle: '#4a3728', // Dark brown glass
-      liquid: '#d4af37', // Golden beer
-      foam: '#fffef7', // Cream foam
-      wings: '#ffd700', // Gold wings
-      cap: '#2c1810', // Dark brown cap
-      label: '#ffffff' // White label
-    },
-    {
-      bottle: '#1a4d1a', // Dark green glass
-      liquid: '#ffb347', // Amber beer
-      foam: '#f5f5dc', // Beige foam
-      wings: '#32cd32', // Green wings
-      cap: '#0d2818', // Dark green cap
-      label: '#ffffff' // White label
-    },
-    {
-      bottle: '#2f2f2f', // Dark gray glass (stout bottle)
-      liquid: '#1a0a00', // Very dark beer (stout)
-      foam: '#d2b48c', // Tan foam
-      wings: '#708090', // Slate gray wings
-      cap: '#000000', // Black cap
-      label: '#ffffff' // White label
-    },
-    {
-      bottle: '#8b4513', // Amber glass
-      liquid: '#daa520', // Light golden beer
-      foam: '#fffacd', // Light cream foam
-      wings: '#cd853f', // Peru wings
-      cap: '#654321', // Brown cap
-      label: '#ffffff' // White label
-    }
-  ];
-  
-  const colors = beerSchemes[beerType % beerSchemes.length];
-
-  return (
-    <group ref={beerRef} position={position}>
-      {/* Realistic Beer Bottle */}
-      <group ref={bottleRef}>
-        {/* Main bottle body - more realistic proportions */}
-        <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[size * 0.25, size * 0.32, size * 1.4, 20]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.25} />
-        </mesh>
-        
-        {/* Bottle shoulder - smoother taper */}
-        <mesh position={[0, size * 0.75, 0]}>
-          <cylinderGeometry args={[size * 0.12, size * 0.25, size * 0.15, 16]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.25} />
-        </mesh>
-        
-        {/* Bottle neck - longer and thinner */}
-        <mesh position={[0, size * 0.95, 0]}>
-          <cylinderGeometry args={[size * 0.08, size * 0.12, size * 0.25, 16]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.25} />
-        </mesh>
-        
-        {/* Bottle mouth rim */}
-        <mesh position={[0, size * 1.1, 0]}>
-          <cylinderGeometry args={[size * 0.085, size * 0.085, size * 0.03, 16]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.4} />
-        </mesh>
-        
-        {/* Bottom of bottle */}
-        <mesh position={[0, size * -0.72, 0]}>
-          <cylinderGeometry args={[size * 0.28, size * 0.32, size * 0.04, 20]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.4} />
-        </mesh>
-        
-        {/* Beer liquid inside - adjusted for new proportions */}
-        <mesh position={[0, size * -0.1, 0]}>
-          <cylinderGeometry args={[size * 0.22, size * 0.28, size * 1.1, 20]} />
-          <meshBasicMaterial color={colors.liquid} transparent opacity={0.85} />
-        </mesh>
-        
-        {/* Beer foam/head - more realistic */}
-        <mesh position={[0, size * 0.55, 0]}>
-          <cylinderGeometry args={[size * 0.2, size * 0.22, size * 0.12, 16]} />
-          <meshBasicMaterial color={colors.foam} transparent opacity={0.9} />
-        </mesh>
-        
-        {/* Bottle cap - more detailed */}
-        <mesh position={[0, size * 1.15, 0]}>
-          <cylinderGeometry args={[size * 0.095, size * 0.095, size * 0.08, 12]} />
-          <meshBasicMaterial color={colors.cap} />
-        </mesh>
-        
-        {/* Cap ridges for realism */}
-        <mesh position={[0, size * 1.17, 0]}>
-          <cylinderGeometry args={[size * 0.1, size * 0.1, size * 0.02, 16]} />
-          <meshBasicMaterial color={colors.cap} />
-        </mesh>
-        
-        {/* Bottle label - properly positioned and sized */}
-        <mesh position={[0, size * 0.1, size * 0.27]}>
-          <boxGeometry args={[size * 0.4, size * 0.45, size * 0.005]} />
-          <meshBasicMaterial color={colors.label} transparent opacity={0.95} />
-        </mesh>
-        
-        {/* Beer brand text on label - more realistic */}
-        <mesh position={[0, size * 0.2, size * 0.275]}>
-          <boxGeometry args={[size * 0.32, size * 0.08, size * 0.002]} />
-          <meshBasicMaterial color={colors.liquid} />
-        </mesh>
-        <mesh position={[0, size * 0.05, size * 0.275]}>
-          <boxGeometry args={[size * 0.28, size * 0.04, size * 0.002]} />
-          <meshBasicMaterial color={colors.bottle} />
-        </mesh>
-        <mesh position={[0, size * -0.05, size * 0.275]}>
-          <boxGeometry args={[size * 0.24, size * 0.03, size * 0.002]} />
-          <meshBasicMaterial color={colors.liquid} />
-        </mesh>
-        
-        {/* Glass reflection highlights - more realistic placement */}
-        <mesh position={[size * 0.2, size * 0.15, 0]}>
-          <boxGeometry args={[size * 0.02, size * 0.6, size * 0.015]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
-        </mesh>
-        <mesh position={[size * -0.15, size * 0.1, 0]}>
-          <boxGeometry args={[size * 0.015, size * 0.4, size * 0.01]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.3} />
-        </mesh>
-        
-        {/* Additional glass shine */}
-        <mesh position={[size * 0.18, size * -0.2, 0]}>
-          <boxGeometry args={[size * 0.02, size * 0.3, size * 0.01]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.25} />
-        </mesh>
-      </group>
-      
-      {/* Extra foam bubbles escaping */}
-      <group ref={foamRef}>
-        {/* Foam bubbles floating above bottle */}
-        {[...Array(4)].map((_, i) => (
-          <mesh 
-            key={i} 
-            position={[
-              (Math.random() - 0.5) * size * 0.15, 
-              size * (0.7 + i * 0.12), 
-              (Math.random() - 0.5) * size * 0.15
-            ]}
-          >
-            <sphereGeometry args={[size * 0.008 * (1 + i * 0.2), 6, 6]} />
-            <meshBasicMaterial color={colors.foam} transparent opacity={0.6 - i * 0.1} />
-          </mesh>
-        ))}
-        
-        {/* Small bubbles inside the beer */}
-        {[...Array(3)].map((_, i) => (
-          <mesh 
-            key={`inside-${i}`} 
-            position={[
-              (Math.random() - 0.5) * size * 0.15, 
-              size * (0.2 - i * 0.15), 
-              (Math.random() - 0.5) * size * 0.15
-            ]}
-          >
-            <sphereGeometry args={[size * 0.005, 4, 4]} />
-            <meshBasicMaterial color={colors.foam} transparent opacity={0.4} />
-          </mesh>
-        ))}
-      </group>
-      
-      {/* Simple wings for flying */}
-      <group ref={wingsRef}>
-        <mesh position={[size * 0.6, size * 0.2, 0]} rotation={[0, 0, Math.PI / 8]}>
-          <boxGeometry args={[size * 0.8, size * 0.05, size * 0.3]} />
-          <meshBasicMaterial color={colors.wings} />
-        </mesh>
-        
-        <mesh position={[-size * 0.6, size * 0.2, 0]} rotation={[0, 0, -Math.PI / 8]}>
-          <boxGeometry args={[size * 0.8, size * 0.05, size * 0.3]} />
-          <meshBasicMaterial color={colors.wings} />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-// Moebius-style flying wine bottle
-function FlyingWineBottle({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, wineType = 0 }) {
-  const wineRef = useRef();
-  const wingsRef = useRef();
-  const bottleRef = useRef();
-
-  useFrame((state) => {
-    if (wineRef.current) {
-      // Move through space
-      wineRef.current.position.z += velocity[2];
-      wineRef.current.position.x += velocity[0] * 0.05;
-      wineRef.current.position.y += velocity[1] * 0.05;
-
-      // Elegant floating motion
-      wineRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.6 + position[0] * 0.2) * 0.1;
-      wineRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.4) * 0.05;
-      wineRef.current.position.y += Math.sin(state.clock.elapsedTime * 1.0 + position[1] * 0.3) * 0.02;
-
-      // Wings flapping gently
-      if (wingsRef.current) {
-        const flapSpeed = Math.sin(state.clock.elapsedTime * 4) * 0.2;
-        wingsRef.current.rotation.z = flapSpeed;
-      }
-
-      // Wine sloshing
-      if (bottleRef.current) {
-        bottleRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
-      }
-
-      // Reset when out of view
-      if (wineRef.current.position.z > 60) {
-        const newX = (Math.random() - 0.5) * 70;
-        const newY = (Math.random() - 0.5) * 35 + 15;
-        const newZ = -130 - Math.random() * 70;
-        
-        wineRef.current.position.set(newX, newY, newZ);
-      }
-    }
-  });
-
-  // Wine bottle types
-  const wineSchemes = [
-    {
-      bottle: '#2d4a2d', // Dark green wine bottle
-      wine: '#722f37', // Red wine
-      cork: '#d2b48c', // Cork color
-      wings: '#8b0000', // Dark red wings
-      foil: '#ffd700', // Gold foil
-      label: '#ffffff' // White label
-    },
-    {
-      bottle: '#1a3d1a', // Very dark green
-      wine: '#f5f5dc', // White wine (pale)
-      cork: '#deb887', // Light cork
-      wings: '#9acd32', // Yellow-green wings
-      foil: '#c0c0c0', // Silver foil
-      label: '#ffffff' // White label
-    },
-    {
-      bottle: '#2f2f2f', // Dark glass
-      wine: '#ffc0cb', // Rosé wine
-      cork: '#cd853f', // Peru cork
-      wings: '#ff69b4', // Hot pink wings
-      foil: '#ff1493', // Deep pink foil
-      label: '#ffffff' // White label
-    },
-    {
-      bottle: '#654321', // Brown glass
-      wine: '#8b0000', // Dark red wine
-      cork: '#f4a460', // Sandy brown cork
-      wings: '#800080', // Purple wings
-      foil: '#4b0082', // Indigo foil
-      label: '#ffffff' // White label
-    }
-  ];
-  
-  const colors = wineSchemes[wineType % wineSchemes.length];
-
-  return (
-    <group ref={wineRef} position={position}>
-      {/* Wine Bottle Body */}
-      <group ref={bottleRef}>
-        {/* Wine bottle bottom */}
-        <mesh position={[0, size * -0.6, 0]}>
-          <cylinderGeometry args={[size * 0.35, size * 0.35, size * 0.1, 16]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.4} />
-        </mesh>
-        
-        {/* Main wine bottle body */}
-        <mesh position={[0, size * -0.1, 0]}>
-          <cylinderGeometry args={[size * 0.32, size * 0.35, size * 1.0, 16]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.4} />
-        </mesh>
-        
-        {/* Bottle shoulder (tapered) */}
-        <mesh position={[0, size * 0.5, 0]}>
-          <cylinderGeometry args={[size * 0.12, size * 0.32, size * 0.3, 12]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.4} />
-        </mesh>
-        
-        {/* Long wine bottle neck */}
-        <mesh position={[0, size * 0.85, 0]}>
-          <cylinderGeometry args={[size * 0.08, size * 0.12, size * 0.4, 12]} />
-          <meshBasicMaterial color={colors.bottle} transparent opacity={0.4} />
-        </mesh>
-        
-        {/* Wine liquid inside */}
-        <mesh position={[0, size * -0.05, 0]}>
-          <cylinderGeometry args={[size * 0.28, size * 0.31, size * 0.8, 16]} />
-          <meshBasicMaterial color={colors.wine} transparent opacity={0.9} />
-        </mesh>
-        
-        {/* Cork */}
-        <mesh position={[0, size * 1.1, 0]}>
-          <cylinderGeometry args={[size * 0.07, size * 0.08, size * 0.15, 8]} />
-          <meshBasicMaterial color={colors.cork} />
-        </mesh>
-        
-        {/* Foil cap over cork */}
-        <mesh position={[0, size * 1.05, 0]}>
-          <cylinderGeometry args={[size * 0.09, size * 0.1, size * 0.08, 8]} />
-          <meshBasicMaterial color={colors.foil} />
-        </mesh>
-        
-        {/* Wine label */}
-        <mesh position={[0, size * 0.1, size * 0.33]}>
-          <boxGeometry args={[size * 0.4, size * 0.5, size * 0.005]} />
-          <meshBasicMaterial color={colors.label} transparent opacity={0.9} />
-        </mesh>
-        
-        {/* Label text elements */}
-        <mesh position={[0, size * 0.25, size * 0.335]}>
-          <boxGeometry args={[size * 0.25, size * 0.06, size * 0.002]} />
-          <meshBasicMaterial color={colors.wine} />
-        </mesh>
-        <mesh position={[0, size * 0.15, size * 0.335]}>
-          <boxGeometry args={[size * 0.2, size * 0.04, size * 0.002]} />
-          <meshBasicMaterial color={colors.wine} />
-        </mesh>
-        <mesh position={[0, size * -0.05, size * 0.335]}>
-          <boxGeometry args={[size * 0.15, size * 0.03, size * 0.002]} />
-          <meshBasicMaterial color={colors.wine} />
-        </mesh>
-        
-        {/* Glass reflection highlights */}
-        <mesh position={[size * 0.22, size * 0.0, 0]}>
-          <boxGeometry args={[size * 0.02, size * 0.6, size * 0.01]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
-        </mesh>
-      </group>
-      
-      {/* Elegant wings for flying */}
-      <group ref={wingsRef}>
-        <mesh position={[size * 0.5, size * 0.1, 0]} rotation={[0, 0, Math.PI / 12]}>
-          <boxGeometry args={[size * 0.9, size * 0.04, size * 0.25]} />
-          <meshBasicMaterial color={colors.wings} transparent opacity={0.8} />
-        </mesh>
-        
-        <mesh position={[-size * 0.5, size * 0.1, 0]} rotation={[0, 0, -Math.PI / 12]}>
-          <boxGeometry args={[size * 0.9, size * 0.04, size * 0.25]} />
-          <meshBasicMaterial color={colors.wings} transparent opacity={0.8} />
-        </mesh>
-        
-        {/* Wing details */}
-        <mesh position={[size * 0.6, size * 0.1, size * 0.05]} rotation={[0, 0, Math.PI / 12]}>
-          <boxGeometry args={[size * 0.15, size * 0.02, size * 0.04]} />
-          <meshBasicMaterial color={colors.wings} transparent opacity={0.6} />
-        </mesh>
-        <mesh position={[-size * 0.6, size * 0.1, size * 0.05]} rotation={[0, 0, -Math.PI / 12]}>
-          <boxGeometry args={[size * 0.15, size * 0.02, size * 0.04]} />
-          <meshBasicMaterial color={colors.wings} transparent opacity={0.6} />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-// Moebius-style melting Dali clock
-function FlyingMeltingClock({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, clockType = 0 }) {
-  const clockRef = useRef();
-  const handsRef = useRef();
-  const meltRef = useRef();
-
-  useFrame((state) => {
-    if (clockRef.current) {
-      // Move through space
-      clockRef.current.position.z += velocity[2];
-      clockRef.current.position.x += velocity[0] * 0.04;
-      clockRef.current.position.y += velocity[1] * 0.04;
-
-      // Surreal floating motion
-      clockRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5 + position[0] * 0.1) * 0.2;
-      clockRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
-      clockRef.current.position.y += Math.sin(state.clock.elapsedTime * 0.8 + position[1] * 0.2) * 0.03;
-
-      // Clock hands rotating
-      if (handsRef.current) {
-        handsRef.current.rotation.z = state.clock.elapsedTime * 0.1; // Slow time
-      }
-
-      // Melting oscillation
-      if (meltRef.current) {
-        const melt = Math.sin(state.clock.elapsedTime * 2) * 0.1 + 1;
-        meltRef.current.scale.y = melt;
-        meltRef.current.position.y = -size * 0.3 * (melt - 1);
-      }
-
-      // Reset when out of view
-      if (clockRef.current.position.z > 60) {
-        const newX = (Math.random() - 0.5) * 90;
-        const newY = (Math.random() - 0.5) * 50 + 25;
-        const newZ = -150 - Math.random() * 80;
-        
-        clockRef.current.position.set(newX, newY, newZ);
-      }
-    }
-  });
-
-  // Melting clock color schemes
-  const clockSchemes = [
-    {
-      clock: '#ffd700', // Golden clock
-      face: '#fffaf0', // Ivory face
-      numbers: '#8b4513', // Brown numbers
-      hands: '#2f4f4f', // Dark slate hands
-      melt: '#daa520', // Golden melt
-      accent: '#ff4500' // Orange red accent
-    },
-    {
-      clock: '#c0c0c0', // Silver clock
-      face: '#f5f5f5', // White smoke face
-      numbers: '#000000', // Black numbers
-      hands: '#4169e1', // Royal blue hands
-      melt: '#a9a9a9', // Dark gray melt
-      accent: '#8a2be2' // Blue violet accent
-    },
-    {
-      clock: '#cd853f', // Peru clock
-      face: '#ffefd5', // Papaya whip face
-      numbers: '#8b0000', // Dark red numbers
-      hands: '#006400', // Dark green hands
-      melt: '#d2691e', // Chocolate melt
-      accent: '#dc143c' // Crimson accent
-    },
-    {
-      clock: '#708090', // Slate gray clock
-      face: '#f0f8ff', // Alice blue face
-      numbers: '#191970', // Midnight blue numbers
-      hands: '#b22222', // Fire brick hands
-      melt: '#696969', // Dim gray melt
-      accent: '#ff69b4' // Hot pink accent
-    }
-  ];
-  
-  const colors = clockSchemes[clockType % clockSchemes.length];
-
-  return (
-    <group ref={clockRef} position={position}>
-      {/* Main Clock Body */}
-      <group>
-        {/* Clock face (circular) */}
-        <mesh position={[0, size * 0.2, 0]} rotation={[0, 0, 0]}>
-          <cylinderGeometry args={[size * 0.4, size * 0.4, size * 0.08, 24]} />
-          <meshBasicMaterial color={colors.clock} />
-        </mesh>
-        
-        {/* Clock face surface */}
-        <mesh position={[0, size * 0.25, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[size * 0.35, 24]} />
-          <meshBasicMaterial color={colors.face} />
-        </mesh>
-        
-        {/* Clock numbers (12, 3, 6, 9) */}
-        <mesh position={[0, size * 0.26, size * 0.28]} rotation={[Math.PI / 2, 0, 0]}>
-          <boxGeometry args={[size * 0.06, size * 0.02, size * 0.08]} />
-          <meshBasicMaterial color={colors.numbers} />
-        </mesh>
-        <mesh position={[size * 0.28, size * 0.26, 0]} rotation={[Math.PI / 2, 0, Math.PI / 2]}>
-          <boxGeometry args={[size * 0.06, size * 0.02, size * 0.08]} />
-          <meshBasicMaterial color={colors.numbers} />
-        </mesh>
-        <mesh position={[0, size * 0.26, -size * 0.28]} rotation={[Math.PI / 2, 0, Math.PI]}>
-          <boxGeometry args={[size * 0.06, size * 0.02, size * 0.08]} />
-          <meshBasicMaterial color={colors.numbers} />
-        </mesh>
-        <mesh position={[-size * 0.28, size * 0.26, 0]} rotation={[Math.PI / 2, 0, -Math.PI / 2]}>
-          <boxGeometry args={[size * 0.06, size * 0.02, size * 0.08]} />
-          <meshBasicMaterial color={colors.numbers} />
-        </mesh>
-        
-        {/* Clock hands */}
-        <group ref={handsRef} position={[0, size * 0.27, 0]}>
-          {/* Hour hand */}
-          <mesh position={[0, 0, size * 0.12]} rotation={[Math.PI / 2, 0, 0]}>
-            <boxGeometry args={[size * 0.03, size * 0.02, size * 0.15]} />
-            <meshBasicMaterial color={colors.hands} />
-          </mesh>
-          {/* Minute hand */}
-          <mesh position={[size * 0.15, 0, 0]} rotation={[Math.PI / 2, 0, Math.PI / 2]}>
-            <boxGeometry args={[size * 0.02, size * 0.02, size * 0.2]} />
-            <meshBasicMaterial color={colors.hands} />
-          </mesh>
-          {/* Center dot */}
-          <mesh>
-            <sphereGeometry args={[size * 0.03, 8, 8]} />
-            <meshBasicMaterial color={colors.hands} />
-          </mesh>
-        </group>
-      </group>
-
-      {/* Melting/Draping Parts */}
-      <group ref={meltRef}>
-        {/* Main melting drape */}
-        <mesh position={[0, size * -0.2, 0]} rotation={[0, 0, 0]}>
-          <cylinderGeometry args={[size * 0.15, size * 0.4, size * 0.6, 12]} />
-          <meshBasicMaterial color={colors.melt} />
-        </mesh>
-        
-        {/* Draping blob at bottom */}
-        <mesh position={[0, size * -0.6, 0]}>
-          <sphereGeometry args={[size * 0.2, 12, 8]} />
-          <meshBasicMaterial color={colors.melt} />
-        </mesh>
-        
-        {/* Side drips */}
-        <mesh position={[size * 0.3, size * -0.1, 0]} rotation={[0, 0, Math.PI / 4]}>
-          <cylinderGeometry args={[size * 0.06, size * 0.12, size * 0.3, 8]} />
-          <meshBasicMaterial color={colors.melt} />
-        </mesh>
-        <mesh position={[-size * 0.3, size * -0.1, 0]} rotation={[0, 0, -Math.PI / 4]}>
-          <cylinderGeometry args={[size * 0.06, size * 0.12, size * 0.3, 8]} />
-          <meshBasicMaterial color={colors.melt} />
-        </mesh>
-        
-        {/* Melting clock edge details */}
-        <mesh position={[size * 0.25, size * 0.05, 0]} rotation={[0, 0, Math.PI / 6]}>
-          <boxGeometry args={[size * 0.08, size * 0.04, size * 0.15]} />
-          <meshBasicMaterial color={colors.clock} />
-        </mesh>
-        <mesh position={[-size * 0.25, size * 0.05, 0]} rotation={[0, 0, -Math.PI / 6]}>
-          <boxGeometry args={[size * 0.08, size * 0.04, size * 0.15]} />
-          <meshBasicMaterial color={colors.clock} />
-        </mesh>
-      </group>
-      
-      {/* Surreal floating accent pieces */}
-      <mesh position={[size * 0.6, size * 0.4, size * 0.2]} rotation={[Math.PI / 4, Math.PI / 4, 0]}>
-        <boxGeometry args={[size * 0.05, size * 0.05, size * 0.1]} />
-        <meshBasicMaterial color={colors.accent} />
-      </mesh>
-      <mesh position={[-size * 0.6, size * 0.3, -size * 0.2]} rotation={[-Math.PI / 4, -Math.PI / 4, 0]}>
-        <sphereGeometry args={[size * 0.03, 6, 6]} />
-        <meshBasicMaterial color={colors.accent} />
-      </mesh>
-    </group>
-  );
-}
-
 function FlyingAstronaut({ position = [0, 0, 0], size = 1 }) {
   const [gltf, setGltf] = useState(null);
   const groupRef = useRef();
@@ -3279,11 +2692,16 @@ function FlyingAstronaut({ position = [0, 0, 0], size = 1 }) {
 //      revolution count, direction, entry angle, orbital-plane tilt and
 //      per-way-point wobble. Radii clamp to the live viewport, so the orbit
 //      tightens automatically on narrow/mobile screens.
-//    • WANDER — a random tour through the background junk field; collisions
-//      with the floating debris are resolved with impulse physics (see
-//      PhysicsDebrisField), so the ship punts junk out of its way.
+//    • WANDER — a random tour through the deep background space.
 //  Each plan ends at a fresh deep-space staging point that seeds the next
 //  plan, so consecutive paths chain seamlessly.
+//
+//  Bender's 2-D image is treated as a REAL object — a solid flat surface
+//  (invisible rectangle at the image's depth, sized off the live viewport).
+//  The ship may fly in front of it or behind it, but a plan whose path would
+//  punch through the surface is rejected and re-rolled (peBuildSafePlan), and
+//  orbit geometry is constrained so plane-crossings always happen beside
+//  Bender — the ship flies AROUND him, never through.
 //
 //  Every plan is a CatmullRom spline sampled by ARC LENGTH (getPointAt) so
 //  travel speed never jumps at way-point boundaries. A C1-continuous Hermite
@@ -3303,20 +2721,9 @@ const PE_CENTER  = { x: 1, y: -1, z: -4 };   // orbit centre ≈ Bender
 const PE_PTS_PER_SPIN = 16;                  // orbit way-points per revolution (denser ⇒ rounder orbit)
 const PE_ORBIT_CHANCE = 0.6;                 // odds a new plan is an orbit (vs background wander)
 
-// Background junk field shared by the ship's wander mode and the physics sim.
-const PE_DEBRIS_Z     = [-120, -18];         // depth band of the junk field
+// Depth band the ship tours during background wander legs.
+const PE_DEBRIS_Z     = [-120, -18];
 const PE_DEBRIS_Z_MID = -60;                 // representative depth for viewport sizing
-const PE_DEBRIS_COUNT = 12;
-const PE_RESTITUTION  = 0.8;                 // bounciness of debris collisions
-
-// Live ship kinematics, shared with the background canvas so the debris
-// field can react to the ship (separate <Canvas>es can't share one scene).
-const PE_SHARED = {
-  pos: new THREE.Vector3(0, 0, -9999),
-  vel: new THREE.Vector3(),
-  radius: 4.5,
-  active: false,
-};
 
 const peRand = (a, b) => a + Math.random() * (b - a);
 const pePick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -3382,8 +2789,54 @@ function peHermite(t, t0, t1, u0, u1, s0, s1) {
        + (-2 * x3 + 3 * x2) * u1 + (x3 - x2) * h * s1;
 }
 
-function peBuildPlan(camera, startPos) {
-  const mode = Math.random() < PE_ORBIT_CHANCE ? 'orbit' : 'wander';
+// ── Bender as a solid flat surface ──────────────────────────────────────────
+// Bender's 2-D image is modelled as a real object: an invisible flat
+// rectangle standing at the orbit-centre depth. It is sized as fractions of
+// the visible viewport at that depth (the CSS image scales with the screen,
+// so the collision rectangle tracks it on any device, mobile included).
+const PE_BENDER = {
+  fx: -0.11,   // rectangle centre, as fractions of the viewport half-extents
+  fy: -0.13,   //   at Bender's depth (measured against the rendered image)
+  fhw: 0.17,   // half-width fraction — torso + head
+  fhh: 0.88,   // half-height fraction — antenna down past the viewport bottom
+};
+
+function peBenderRect(camera) {
+  const { halfW, halfH } = peViewHalf(camera, PE_CENTER.z);
+  const clear = Math.min(2.5, halfW * 0.12);   // ship-hull clearance
+  return {
+    cx: PE_BENDER.fx * halfW,
+    cy: PE_BENDER.fy * halfH,
+    hw: PE_BENDER.fhw * halfW + clear,
+    hh: PE_BENDER.fhh * halfH + clear,
+  };
+}
+
+const _pbA = new THREE.Vector3();
+const _pbB = new THREE.Vector3();
+
+// True if any sampled segment of the curve crosses Bender's image plane
+// inside the rectangle — i.e. the path would pass through Bender. Sign-change
+// detection on the plane distance catches every crossing.
+function peHitsBender(curve, rect) {
+  curve.getPoint(0, _pbA);
+  for (let i = 1; i <= 240; i++) {
+    curve.getPoint(i / 240, _pbB);
+    const d0 = _pbA.z - PE_CENTER.z;
+    const d1 = _pbB.z - PE_CENTER.z;
+    if ((d0 <= 0) !== (d1 <= 0)) {
+      const t = d0 / (d0 - d1);
+      const x = _pbA.x + (_pbB.x - _pbA.x) * t;
+      const y = _pbA.y + (_pbB.y - _pbA.y) * t;
+      if (Math.abs(x - rect.cx) < rect.hw && Math.abs(y - rect.cy) < rect.hh) return true;
+    }
+    _pbA.copy(_pbB);
+  }
+  return false;
+}
+
+function peBuildPlan(camera, startPos, forceMode) {
+  const mode = forceMode || (Math.random() < PE_ORBIT_CHANCE ? 'orbit' : 'wander');
   const C = PE_CENTER;
   const pts = [startPos.clone()];
   let entryIdx, exitIdx, cruiseShare;
@@ -3392,11 +2845,22 @@ function peBuildPlan(camera, startPos) {
     // ORBIT — loop Bender with random radii, revolutions, direction, entry
     // angle, orbital-plane tilt and per-way-point wobble.
     const { halfW, halfH } = peViewHalf(camera, C.z);
-    const rx    = Math.min(peRand(13, 19), halfW * 0.82);
+    const rect  = peBenderRect(camera);
+    // Radius floor: the orbit's image-plane crossings (the ±90° points where
+    // the ship slips between in-front and behind) must clear Bender's flat
+    // surface SIDEWAYS — never through it. /0.88 covers worst-case wobble.
+    const rxNeed = Math.max(
+      13,
+      (C.x - (rect.cx - rect.hw) + 1) / 0.88,
+      ((rect.cx + rect.hw) - C.x + 1) / 0.88
+    );
+    const rx    = Math.min(peRand(rxNeed, Math.max(rxNeed + 3, 19)), halfW * 0.82);
     const rz    = peRand(10, 16);
     const spins = pePick([1, 2, 2, 3]);
     const dir   = Math.random() < 0.5 ? 1 : -1;
-    const th0   = peRand(0, Math.PI * 2);
+    // Enter and exit the loop BEHIND Bender (far half of the orbit), so the
+    // approach/retreat legs never have to punch through the image plane.
+    const th0   = Math.PI + peRand(-Math.PI / 3, Math.PI / 3);
     const ry1   = peRand(1.5, Math.min(6, halfH * 0.35));        // orbital-plane tilt
     const ry2   = peRand(-1, 1) * Math.min(4, halfH * 0.25);     // slow vertical precession
 
@@ -3420,8 +2884,7 @@ function peBuildPlan(camera, startPos) {
     exitIdx = pts.length - 1;
     cruiseShare = peRand(0.62, 0.75);
   } else {
-    // WANDER — random tour through the background junk field; the physics
-    // sim (PhysicsDebrisField) punts any debris the ship plows through.
+    // WANDER — random tour through the deep background space.
     const { halfW, halfH } = peViewHalf(camera, PE_DEBRIS_Z_MID);
     entryIdx = 1;
     const nWay = 5 + Math.floor(Math.random() * 4);
@@ -3477,6 +2940,21 @@ function peBuildPlan(camera, startPos) {
 }
 const PE_SPEED_EPS = 0.002;  // finite-difference step for the du/dt speed read-out
 
+// Build a plan guaranteed not to pass through Bender's flat surface: sample
+// each candidate path against the rectangle and re-roll offenders. The
+// constrained orbit geometry makes rejections rare; the last attempt forces
+// WANDER mode, whose way-points all sit well behind the image plane, so the
+// loop always terminates with a safe plan.
+function peBuildSafePlan(camera, startPos) {
+  const rect = peBenderRect(camera);
+  let plan;
+  for (let i = 0; i < 8; i++) {
+    plan = peBuildPlan(camera, startPos, i === 7 ? 'wander' : undefined);
+    if (!peHitsBender(plan.curve, rect)) return plan;
+  }
+  return plan;
+}
+
 // Reusable temporaries (single ship instance → safe to share at module scope).
 const _pePos   = new THREE.Vector3();
 const _peTan   = new THREE.Vector3();
@@ -3496,7 +2974,6 @@ function PlanetExpressShip({ layerRef }) {
   const inFrontRef = useRef(true);  // current layer state (avoids redundant DOM writes)
   const planRef = useRef(null);     // current randomized flight plan
   const tRef = useRef(0);           // progress through the current plan [0,1)
-  const prevPosRef = useRef(null);  // last frame's position (for velocity sharing)
   const flameRef = useRef();        // thruster exhaust group
   const flameLightRef = useRef();
   const flameLvlRef = useRef(0);
@@ -3563,12 +3040,12 @@ function PlanetExpressShip({ layerRef }) {
     // each new plan starts where the old one ended (seamless chaining).
     let plan = planRef.current;
     if (!plan) {
-      plan = planRef.current = peBuildPlan(state.camera, new THREE.Vector3(-34, 16, -195));
+      plan = planRef.current = peBuildSafePlan(state.camera, new THREE.Vector3(-34, 16, -195));
     }
     tRef.current += dt / plan.cycle;
     if (tRef.current >= 1) {
       plan.curve.getPointAt(1, _pePos);  // end of the old path seeds the new one
-      plan = planRef.current = peBuildPlan(state.camera, _pePos);
+      plan = planRef.current = peBuildSafePlan(state.camera, _pePos);
       tRef.current = 0;
     }
     const t = tRef.current;
@@ -3581,17 +3058,6 @@ function PlanetExpressShip({ layerRef }) {
     plan.curve.getTangentAt(u, _peTan).normalize();
     plan.curve.getTangentAt(Math.min(u + PE_TANGENT_DT, 1), _peTan2).normalize();
     g.position.copy(_pePos);
-
-    // Share live kinematics with the background junk field (separate canvas)
-    // so it can resolve ship↔debris collisions.
-    if (prevPosRef.current) {
-      PE_SHARED.vel.copy(_pePos).sub(prevPosRef.current).divideScalar(Math.max(dt, 1e-4));
-    } else {
-      prevPosRef.current = new THREE.Vector3().copy(_pePos);
-    }
-    prevPosRef.current.copy(_pePos);
-    PE_SHARED.pos.copy(_pePos);
-    PE_SHARED.active = true;
 
     // Depth flip: in front of Bender when nearer than the orbit centre, behind
     // it when farther. Only touch the DOM when the state actually changes.
@@ -3708,274 +3174,6 @@ function PlanetExpressShip({ layerRef }) {
       <directionalLight intensity={1.0} position={[-5, -2, -3]} color="#aaddff" />
       {/* Blue engine glow from the rear nozzles */}
       <pointLight ref={engineLightRef} color="#55bbff" intensity={1.5} distance={18} position={[0, -1.5, 2]} />
-    </group>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  Physics junk field — floating cartoon debris on random wander paths with
-//  REAL collision physics: impulse-based elastic sphere collisions between
-//  the pieces, plus ship↔debris collisions (the Planet Express ship is
-//  kinematic — it stays on its spline — so the junk gets punted while the
-//  ship plows through). Runs on the background canvas; the ship's live
-//  kinematics arrive via PE_SHARED since the two canvases can't share a scene.
-// ════════════════════════════════════════════════════════════════════════
-const _dbN    = new THREE.Vector3();
-const _dbRel  = new THREE.Vector3();
-const _dbKick = new THREE.Vector3();
-
-const DEBRIS_ROCK_COLORS  = ['#9b8f82', '#8a7f74', '#a89a88', '#7f7468'];
-const DEBRIS_CRATE_COLORS = ['#b5651d', '#8d6e3f', '#a0522d'];
-
-function PhysicsDebrisField() {
-  const refs = useRef([]);
-
-  const bodies = useMemo(() => {
-    const arr = [];
-    for (let i = 0; i < PE_DEBRIS_COUNT; i++) {
-      const kind = i % 3;  // 0 asteroid, 1 cargo crate, 2 Slurm canister
-      const radius = kind === 0 ? peRand(1.6, 3) : peRand(1.2, 2);
-      arr.push({
-        kind,
-        radius,
-        mass: radius * radius * radius,  // ∝ volume ⇒ big rocks barely budge
-        pos: new THREE.Vector3(peRand(-50, 50), peRand(-26, 26), peRand(PE_DEBRIS_Z[0], PE_DEBRIS_Z[1])),
-        vel: new THREE.Vector3(peRand(-2, 2), peRand(-1.5, 1.5), peRand(-2, 2)),
-        angVel: new THREE.Vector3(peRand(-0.5, 0.5), peRand(-0.5, 0.5), peRand(-0.5, 0.5)),
-        rot: new THREE.Euler(peRand(0, Math.PI * 2), peRand(0, Math.PI * 2), 0),
-        seed: peRand(0.6, 1.6),
-        phase: peRand(0, Math.PI * 2),
-        color: kind === 0 ? pePick(DEBRIS_ROCK_COLORS) : kind === 1 ? pePick(DEBRIS_CRATE_COLORS) : '#69d025',
-      });
-    }
-    return arr;
-  }, []);
-
-  useFrame((state, delta) => {
-    const dt = Math.min(delta, 0.05);
-    const time = state.clock.elapsedTime;
-
-    // 1) Integrate: smooth pseudo-random wander + soft field walls + drag.
-    for (const b of bodies) {
-      b.vel.x += Math.sin(time * 0.31 * b.seed + b.phase) * 1.2 * dt;
-      b.vel.y += Math.sin(time * 0.43 * b.seed + b.phase * 2.1) * 0.9 * dt;
-      b.vel.z += Math.cos(time * 0.37 * b.seed + b.phase * 1.3) * 1.2 * dt;
-      // Soft walls spring the piece back when it drifts out of the field.
-      b.vel.x += (peClamp(b.pos.x, -52, 52) - b.pos.x) * 1.5 * dt;
-      b.vel.y += (peClamp(b.pos.y, -28, 28) - b.pos.y) * 1.5 * dt;
-      b.vel.z += (peClamp(b.pos.z, PE_DEBRIS_Z[0], PE_DEBRIS_Z[1]) - b.pos.z) * 1.5 * dt;
-      // Drag bleeds collision energy back down to a lazy drift.
-      if (b.vel.lengthSq() > 36) b.vel.multiplyScalar(Math.exp(-0.5 * dt));
-      b.pos.addScaledVector(b.vel, dt);
-      b.rot.x += b.angVel.x * dt;
-      b.rot.y += b.angVel.y * dt;
-      b.rot.z += b.angVel.z * dt;
-      b.angVel.multiplyScalar(Math.exp(-0.15 * dt));
-    }
-
-    // 2) Debris↔debris: impulse-based elastic sphere collisions.
-    for (let i = 0; i < bodies.length; i++) {
-      const b1 = bodies[i];
-      for (let j = i + 1; j < bodies.length; j++) {
-        const b2 = bodies[j];
-        _dbN.copy(b2.pos).sub(b1.pos);
-        const minD = b1.radius + b2.radius;
-        const d2 = _dbN.lengthSq();
-        if (d2 === 0 || d2 > minD * minD) continue;
-        const d = Math.sqrt(d2);
-        _dbN.divideScalar(d);                      // contact normal b1→b2
-        const w1 = b2.mass / (b1.mass + b2.mass);  // mass-weighted de-penetration
-        b1.pos.addScaledVector(_dbN, -(minD - d) * w1);
-        b2.pos.addScaledVector(_dbN, (minD - d) * (1 - w1));
-        _dbRel.copy(b1.vel).sub(b2.vel);
-        const vn = _dbRel.dot(_dbN);
-        if (vn <= 0) continue;                     // already separating
-        const imp = ((1 + PE_RESTITUTION) * vn) / (1 / b1.mass + 1 / b2.mass);
-        b1.vel.addScaledVector(_dbN, -imp / b1.mass);
-        b2.vel.addScaledVector(_dbN, imp / b2.mass);
-        _dbKick.crossVectors(_dbN, _dbRel);        // glancing hits add tumble
-        b1.angVel.addScaledVector(_dbKick, (imp / b1.mass) * 0.12);
-        b2.angVel.addScaledVector(_dbKick, -(imp / b2.mass) * 0.12);
-      }
-    }
-
-    // 3) Ship↔debris: the ship is an infinite-mass kinematic sphere — junk
-    //    bounces off with restitution + the ship's own momentum.
-    if (PE_SHARED.active) {
-      for (const b of bodies) {
-        _dbN.copy(b.pos).sub(PE_SHARED.pos);
-        const minD = b.radius + PE_SHARED.radius;
-        const d2 = _dbN.lengthSq();
-        if (d2 === 0 || d2 > minD * minD) continue;
-        _dbN.divideScalar(Math.sqrt(d2));
-        b.pos.copy(PE_SHARED.pos).addScaledVector(_dbN, minD);  // shove clear of the hull
-        _dbRel.copy(b.vel).sub(PE_SHARED.vel);
-        const vn = _dbRel.dot(_dbN);
-        if (vn >= 0) continue;
-        b.vel.addScaledVector(_dbN, -(1 + PE_RESTITUTION) * vn);
-        if (b.vel.length() > 26) b.vel.setLength(26);  // cap fly-by launches
-        _dbKick.crossVectors(_dbN, _dbRel);
-        b.angVel.addScaledVector(_dbKick, 0.06);
-        if (b.angVel.length() > 5) b.angVel.setLength(5);
-      }
-    }
-
-    // 4) Commit the simulation to the meshes.
-    for (let i = 0; i < bodies.length; i++) {
-      const m = refs.current[i];
-      if (!m) continue;
-      m.position.copy(bodies[i].pos);
-      m.rotation.copy(bodies[i].rot);
-    }
-  });
-
-  return (
-    <>
-      {bodies.map((b, i) => (
-        <group key={`debris-${i}`} ref={(el) => { refs.current[i] = el; }}>
-          {b.kind === 0 && (
-            <mesh>
-              <dodecahedronGeometry args={[b.radius, 0]} />
-              <meshBasicMaterial color={b.color} />
-            </mesh>
-          )}
-          {b.kind === 1 && (
-            <>
-              <mesh>
-                <boxGeometry args={[b.radius * 1.5, b.radius * 1.5, b.radius * 1.5]} />
-                <meshBasicMaterial color={b.color} />
-              </mesh>
-              {/* strapping band */}
-              <mesh>
-                <boxGeometry args={[b.radius * 1.55, b.radius * 0.3, b.radius * 1.55]} />
-                <meshBasicMaterial color="#3a3a3a" />
-              </mesh>
-            </>
-          )}
-          {b.kind === 2 && (
-            <>
-              <mesh>
-                <cylinderGeometry args={[b.radius * 0.65, b.radius * 0.65, b.radius * 1.7, 10]} />
-                <meshBasicMaterial color={b.color} />
-              </mesh>
-              {/* lid */}
-              <mesh position={[0, b.radius * 0.85, 0]}>
-                <cylinderGeometry args={[b.radius * 0.45, b.radius * 0.65, b.radius * 0.25, 10]} />
-                <meshBasicMaterial color="#cfd8dc" />
-              </mesh>
-              {/* label band */}
-              <mesh>
-                <cylinderGeometry args={[b.radius * 0.66, b.radius * 0.66, b.radius * 0.5, 10]} />
-                <meshBasicMaterial color="#e8f5e9" />
-              </mesh>
-            </>
-          )}
-        </group>
-      ))}
-    </>
-  );
-}
-
-// Iconic Coca-Cola inspired contour bottle
-function FlyingColaBottle({ position = [0, 0, 0], velocity = [0, 0, 1], size = 1, isDarkMode = false, colaType = 0 }) {
-  const bottleRef = useRef();
-  const liquidRef = useRef();
-
-  useFrame((state) => {
-    if (bottleRef.current) {
-      bottleRef.current.position.z += velocity[2];
-      bottleRef.current.position.x += velocity[0] * 0.06;
-      bottleRef.current.position.y += velocity[1] * 0.06;
-      bottleRef.current.rotation.x += 0.015;
-      bottleRef.current.rotation.y += 0.01;
-      bottleRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.7 + position[0] * 0.1) * 0.3;
-      bottleRef.current.position.y += Math.sin(state.clock.elapsedTime * 0.9 + position[1] * 0.2) * 0.02;
-      if (liquidRef.current) {
-        liquidRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * size * 0.03;
-      }
-      if (bottleRef.current.position.z > 70) {
-        const newX = (Math.random() - 0.5) * 80;
-        const newY = (Math.random() - 0.5) * 40 + 15;
-        const newZ = -100 - Math.random() * 60;
-        bottleRef.current.position.set(newX, newY, newZ);
-      }
-    }
-  });
-
-  const bottleSchemes = [
-    { glass: '#1a0a05', label: '#cc0000', ribbon: '#ffffff', cap: '#aaaaaa', liquid: '#2a0e00' },
-    { glass: '#001a05', label: '#005500', ribbon: '#ffffff', cap: '#cccccc', liquid: '#001505' },
-    { glass: '#050015', label: '#000066', ribbon: '#ffcc00', cap: '#aaaacc', liquid: '#000010' },
-  ];
-  const colors = bottleSchemes[colaType % bottleSchemes.length];
-
-  return (
-    <group ref={bottleRef} position={position}>
-      {/* Bottom dome */}
-      <mesh position={[0, -size * 0.9, 0]}>
-        <sphereGeometry args={[size * 0.22, 12, 8, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5]} />
-        <meshBasicMaterial color={colors.glass} transparent opacity={0.85} />
-      </mesh>
-      {/* Main body */}
-      <mesh position={[0, -size * 0.3, 0]}>
-        <cylinderGeometry args={[size * 0.22, size * 0.2, size * 1.1, 12]} />
-        <meshBasicMaterial color={colors.glass} transparent opacity={0.82} />
-      </mesh>
-      {/* Waist pinch (contour) */}
-      <mesh position={[0, size * 0.22, 0]}>
-        <cylinderGeometry args={[size * 0.16, size * 0.22, size * 0.22, 12]} />
-        <meshBasicMaterial color={colors.glass} transparent opacity={0.82} />
-      </mesh>
-      {/* Upper shoulder */}
-      <mesh position={[0, size * 0.42, 0]}>
-        <cylinderGeometry args={[size * 0.19, size * 0.16, size * 0.2, 12]} />
-        <meshBasicMaterial color={colors.glass} transparent opacity={0.82} />
-      </mesh>
-      {/* Neck */}
-      <mesh position={[0, size * 0.6, 0]}>
-        <cylinderGeometry args={[size * 0.1, size * 0.19, size * 0.3, 10]} />
-        <meshBasicMaterial color={colors.glass} transparent opacity={0.85} />
-      </mesh>
-      {/* Bottle top */}
-      <mesh position={[0, size * 0.82, 0]}>
-        <cylinderGeometry args={[size * 0.08, size * 0.1, size * 0.2, 10]} />
-        <meshBasicMaterial color={colors.glass} transparent opacity={0.9} />
-      </mesh>
-      {/* Metal cap */}
-      <mesh position={[0, size * 0.94, 0]}>
-        <cylinderGeometry args={[size * 0.09, size * 0.08, size * 0.08, 10]} />
-        <meshBasicMaterial color={colors.cap} />
-      </mesh>
-      <mesh position={[0, size * 0.99, 0]}>
-        <cylinderGeometry args={[size * 0.09, size * 0.09, size * 0.02, 10]} />
-        <meshBasicMaterial color={colors.cap} />
-      </mesh>
-      {/* Liquid fill */}
-      <mesh ref={liquidRef} position={[0, -size * 0.3, 0]}>
-        <cylinderGeometry args={[size * 0.18, size * 0.17, size * 0.9, 12]} />
-        <meshBasicMaterial color={colors.liquid} transparent opacity={0.9} />
-      </mesh>
-      {/* Red label band */}
-      <mesh position={[0, -size * 0.25, 0]}>
-        <cylinderGeometry args={[size * 0.225, size * 0.225, size * 0.55, 12]} />
-        <meshBasicMaterial color={colors.label} transparent opacity={0.95} />
-      </mesh>
-      {/* White ribbon stripes */}
-      <mesh position={[0, -size * 0.22, 0]}>
-        <cylinderGeometry args={[size * 0.228, size * 0.228, size * 0.06, 12]} />
-        <meshBasicMaterial color={colors.ribbon} transparent opacity={0.9} />
-      </mesh>
-      <mesh position={[0, -size * 0.38, 0]}>
-        <cylinderGeometry args={[size * 0.228, size * 0.228, size * 0.06, 12]} />
-        <meshBasicMaterial color={colors.ribbon} transparent opacity={0.9} />
-      </mesh>
-      {/* Condensation droplets */}
-      {[0, 1.2, 2.4, 3.6].map((angle, i) => (
-        <mesh key={i} position={[Math.sin(angle) * size * 0.22, -size * 0.5, Math.cos(angle) * size * 0.22]}>
-          <sphereGeometry args={[size * 0.015, 4, 4]} />
-          <meshBasicMaterial color="#88ccff" transparent opacity={0.5} />
-        </mesh>
-      ))}
     </group>
   );
 }
@@ -5713,60 +4911,6 @@ function SimpleSpaceScene() {
     }));
   }, []);
 
-  const flyingBearBottles = useMemo(() => {
-    return Array.from({ length: 4 }, (_, i) => ({
-      id: i,
-      position: [
-        (Math.random() - 0.5) * 60, // Much closer to center horizontally
-        (Math.random() - 0.5) * 30 + 10, // Closer to center vertically
-        -80 - i * 25 - Math.random() * 30 // Much closer starting positions
-      ],
-      velocity: [
-        (Math.random() - 0.5) * 0.04, // Slower horizontal movement to stay near center
-        (Math.random() - 0.5) * 0.02, // Slower vertical movement
-        0.4 + Math.random() * 0.2 // Slower forward speed to stay visible longer
-      ],
-      size: Math.random() * 0.8 + 1.8, // Much larger bear bottle sizes (1.8-2.6)
-      type: i % 3 // Different bear bottle color schemes
-    }));
-  }, []);
-
-  const flyingWineBottles = useMemo(() => {
-    return Array.from({ length: 3 }, (_, i) => ({
-      id: i,
-      position: [
-        (Math.random() - 0.5) * 80, // Spread out more than beer bottles
-        (Math.random() - 0.5) * 40 + 20, // Higher up in the scene
-        -100 - i * 35 - Math.random() * 40 // Different spacing from beer bottles
-      ],
-      velocity: [
-        (Math.random() - 0.5) * 0.03, // Slower, more elegant movement
-        (Math.random() - 0.5) * 0.015, // Very gentle vertical movement
-        0.3 + Math.random() * 0.15 // Slower forward speed for elegance
-      ],
-      size: Math.random() * 0.6 + 1.2, // Wine bottle sizes (1.2-1.8)
-      type: i % 4 // Different wine types
-    }));
-  }, []);
-
-  const flyingMeltingClocks = useMemo(() => {
-    return Array.from({ length: 2 }, (_, i) => ({
-      id: i,
-      position: [
-        (Math.random() - 0.5) * 100, // Wide spread across scene
-        (Math.random() - 0.5) * 60 + 30, // Higher up for surreal effect
-        -120 - i * 50 - Math.random() * 60 // Spaced out timing
-      ],
-      velocity: [
-        (Math.random() - 0.5) * 0.025, // Very slow, dreamlike movement
-        (Math.random() - 0.5) * 0.01, // Minimal vertical drift
-        0.25 + Math.random() * 0.1 // Slow, hypnotic forward motion
-      ],
-      size: Math.random() * 0.5 + 0.8, // Clock sizes (0.8-1.3)
-      type: i % 4 // Different melting clock styles
-    }));
-  }, []);
-
   const flyingAstronauts = useMemo(() => {
     return Array.from({ length: 1 }, (_, i) => ({
       id: i,
@@ -5782,16 +4926,6 @@ function SimpleSpaceScene() {
       ],
       size: 5.0, // Even bigger astronaut size!
       type: i % 3 // Different astronaut suit styles
-    }));
-  }, []);
-
-  const colaBottles = useMemo(() => {
-    return Array.from({ length: 3 }, (_, i) => ({
-      id: i,
-      position: [(Math.random() - 0.5) * 70, (Math.random() - 0.5) * 35 + 10, -90 - i * 30 - Math.random() * 30],
-      velocity: [(Math.random() - 0.5) * 0.035, (Math.random() - 0.5) * 0.018, 0.38 + Math.random() * 0.15],
-      size: Math.random() * 0.7 + 1.4,
-      type: i % 3
     }));
   }, []);
 
@@ -6104,42 +5238,6 @@ function SimpleSpaceScene() {
         />
       ))}
 
-      {/* Flying Beer Bottles */}
-      {flyingBearBottles.map((beerBottle) => (
-        <FlyingBeerBottle
-          key={`beer-${beerBottle.id}`}
-          position={beerBottle.position}
-          velocity={beerBottle.velocity}
-          size={beerBottle.size}
-          isDarkMode={isDarkMode}
-          beerType={beerBottle.type}
-        />
-      ))}
-
-      {/* Flying Wine Bottles */}
-      {flyingWineBottles.map((wineBottle) => (
-        <FlyingWineBottle
-          key={`wine-${wineBottle.id}`}
-          position={wineBottle.position}
-          velocity={wineBottle.velocity}
-          size={wineBottle.size}
-          isDarkMode={isDarkMode}
-          wineType={wineBottle.type}
-        />
-      ))}
-
-      {/* Flying Melting Clocks */}
-      {flyingMeltingClocks.map((clock) => (
-        <FlyingMeltingClock
-          key={`clock-${clock.id}`}
-          position={clock.position}
-          velocity={clock.velocity}
-          size={clock.size}
-          isDarkMode={isDarkMode}
-          clockType={clock.type}
-        />
-      ))}
-
       {/* Flying Astronauts */}
       {flyingAstronauts.map((astronaut) => (
         <FlyingAstronaut
@@ -6151,23 +5249,6 @@ function SimpleSpaceScene() {
           astronautType={astronaut.type}
         />
       ))}
-
-      {/* Cola Bottles */}
-      {colaBottles.map((bottle) => (
-        <FlyingColaBottle
-          key={`cola-${bottle.id}`}
-          position={bottle.position}
-          velocity={bottle.velocity}
-          size={bottle.size}
-          isDarkMode={isDarkMode}
-          colaType={bottle.type}
-        />
-      ))}
-
-      {/* Physics junk field — wandering debris with impulse collision physics;
-          the Planet Express ship punts pieces aside whenever its wander route
-          crosses the field (ship kinematics shared via PE_SHARED). */}
-      <PhysicsDebrisField />
 
       {/* Planet Express Ship is rendered in its own foreground overlay
           canvas (see SimpleSpace below) so it can fly ON TOP of Bender. */}
